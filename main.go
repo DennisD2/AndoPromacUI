@@ -22,6 +22,7 @@ type AndoConnection struct {
 	debug        int
 	batch        bool
 	uploadFile   string
+	downloadFile string
 	serial       *AndoSerialConnection
 	lineInfos    []LineInfo
 }
@@ -46,16 +47,19 @@ func main() {
 		"Baudrate")
 	batchPtr := flag.Bool("batch", false,
 		"Non-interactive (batch) mode")
-	uploadPtr := flag.String("upload", "multiecho.deposit",
-		"Deposit file to upload")
+	uploadPtr := flag.String("infile", "in.bin",
+		"Input file to upload")
+	downloadPtr := flag.String("outfile", "out.bin",
+		"Input file to upload")
 	flag.Parse()
 
 	fmt.Printf("--device, TTY Device: %s\n", *devicePtr)
 	fmt.Printf("--dry-run: %t\n", *dryRunPtr)
 	fmt.Printf("--debug: %d\n", *debugPtr)
 	fmt.Printf("--baudrate: %d\n", *baudratePtr)
+	fmt.Printf("--outfile: %s\n", *downloadPtr)
 	fmt.Printf("--batch: %t (batch mode not yet supported)\n", *batchPtr)
-	fmt.Printf("--upload: %s (batch mode not yet supported)\n", *uploadPtr)
+	fmt.Printf("--infile: %s (batch mode not yet supported)\n", *uploadPtr)
 
 	// Create serial connection
 	andoSerial := AndoSerialConnection{
@@ -73,6 +77,7 @@ func main() {
 		*debugPtr,
 		*batchPtr,
 		*uploadPtr,
+		*downloadPtr,
 		&andoSerial,
 		nil,
 	}
@@ -254,6 +259,7 @@ func localKeyboardReader(ando *AndoConnection) {
 	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
 	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
 	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
+	fmt.Print(" : w		- Write EPROM data to file\n\r")
 	fmt.Print("\n\r")
 	for ando.continueLoop > 0 {
 		fmt.Printf("Command > ")
@@ -290,6 +296,9 @@ func localKeyboardReader(ando *AndoConnection) {
 					bbuf[2] = '\r'
 					ando.serial.tty.Write(bbuf)
 				}
+				if cbuf[0] == 'w' {
+					writeDataToFile(ando)
+				}
 				continue
 			}
 
@@ -298,7 +307,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					// If ':' is selected, check next char for command to execute
 					// We switch state to CommandInput for that
 					ando.state = CommandInput
-					fmt.Print("Command (:qd):")
+					fmt.Print("Command (:qdw):")
 					continue
 				}
 			}
@@ -313,4 +322,24 @@ func localKeyboardReader(ando *AndoConnection) {
 			}
 		}
 	}
+}
+
+func writeDataToFile(ando *AndoConnection) {
+	numBytes := 0
+	sb := new(strings.Builder)
+	for _, line := range ando.lineInfos {
+		for i, code := range line.codes {
+			if i < 16 {
+				sb.WriteByte(code)
+				numBytes++
+			}
+		}
+	}
+	// Write file
+	err := os.WriteFile(ando.downloadFile, []byte(sb.String()), 0644)
+	if err != nil {
+		log.Printf("Error Writing file %s\n\r", err)
+		return
+	}
+	fmt.Printf("%v bytes written\n\r", numBytes)
 }
