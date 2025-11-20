@@ -164,18 +164,16 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInf
 		if cbuf[i] == '\n' {
 			if ando.state == ReceiveData {
 				newLine.lineNumber = *lineNumber
-				extractData(newLine, errors)
-				//if newLine.address > 0 {
-				ando.lineInfos = append(ando.lineInfos, *newLine)
-				dumpLine(*newLine)
-				*lineNumber++
-				//}
+				valid := extractData(newLine, errors)
+				if valid {
+					ando.lineInfos = append(ando.lineInfos, *newLine)
+					dumpLine(*newLine)
+					*lineNumber++
+				}
 				newLine.raw = ""
-
 			} else {
 				fmt.Printf("\n\r")
 			}
-
 		} else {
 			if ando.state == ReceiveData {
 				newLine.raw = newLine.raw + string(cbuf[i])
@@ -200,7 +198,7 @@ func dumpLine(line LineInfo) {
 }
 
 // extractData extracts a string representing a line from Programmer device into address and hex values
-func extractData(l *LineInfo, errors *int) {
+func extractData(l *LineInfo, errors *int) bool {
 	if strings.Contains(l.raw, "[#") {
 		log.Printf("Start line\n\r")
 		index := strings.Index(l.raw, "[#")
@@ -211,36 +209,35 @@ func extractData(l *LineInfo, errors *int) {
 		if firstCommaPos == -1 {
 			log.Printf("Line %v contains no ',' character. Line ignored", l.lineNumber)
 			*errors++
-			return
+			return false
 		}
 		addressPart := l.raw[1:firstCommaPos]
 		value, err := strconv.ParseUint(addressPart, 16, 32)
 		if err != nil {
 			log.Printf("Error converting address %v Line %v", addressPart, l.lineNumber)
 			*errors++
-			return
+			return false
 		}
 		l.address = uint32(value)
 
 		valuesPart := l.raw[firstCommaPos+1:]
 		codes := strings.Split(valuesPart, ",")
 		if len(codes) != 17 {
-			log.Printf("Line contains %v codes (expected 16) at address %v Line %v", len(l.codes), l.address, l.lineNumber)
+			log.Printf("Line contains %v codes (expected 17) at address %v Line %v", len(l.codes), l.address, l.lineNumber)
 			*errors++
-		}
-		if strings.HasSuffix(codes[16], "\r") {
-			codes[16] = strings.Replace(codes[16], "\r", "", -1)
 		}
 		for i := 0; i < 16; i++ {
 			value, err := strconv.ParseUint(codes[i], 16, 8)
 			if err != nil {
 				log.Printf("Error converting value %v, index %v, in Line %v", codes[i], i, l.lineNumber)
 				*errors++
-				return
+				return false
 			}
 			l.codes[i] = byte(value)
 		}
+		return true
 	}
+	return false
 }
 
 // localKeyboardReader handles all local keyboard input and interaction
