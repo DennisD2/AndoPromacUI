@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -124,6 +126,7 @@ var lineNumber = 0
 
 func ttyReader(ando *AndoConnection) {
 	cbuf := make([]byte, 128)
+	errors := 0
 	for ando.continueLoop > 0 {
 		if ando.dryMode {
 			continue
@@ -143,29 +146,68 @@ func ttyReader(ando *AndoConnection) {
 				bbuf[0] = '@'
 				ando.serial.tty.Write(bbuf)
 				fmt.Printf("Data receive completed. Read %v lines\n\r", lineNumber-1)
-			} else {
-				for i := 0; i < num; i++ {
-					if cbuf[i] == '\n' {
-						if ando.state == ReceiveData {
-							newLine.lineNumber = lineNumber
-							ando.lineInfos = append(ando.lineInfos, newLine)
-
-							fmt.Printf("%v %v\n\r", newLine.lineNumber, newLine.raw)
-							newLine.raw = ""
-							lineNumber++
-						} else {
-							fmt.Printf("\n\r")
-						}
-
-					} else {
-						if ando.state == ReceiveData {
-							newLine.raw = newLine.raw + string(cbuf[i])
-						} else {
-							fmt.Printf("%c", cbuf[i])
-						}
-					}
+				if errors > 0 {
+					fmt.Printf("There were %v errors\n\r", errors)
+					errors = 0
 				}
+			} else {
+				handleTTYInput(ando, num, cbuf, &errors)
 			}
+		}
+	}
+}
+
+func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, errors *int) {
+	for i := 0; i < num; i++ {
+		if cbuf[i] == '\n' {
+			if ando.state == ReceiveData {
+				newLine.lineNumber = lineNumber
+				ando.lineInfos = append(ando.lineInfos, newLine)
+
+				extractData(&newLine, errors)
+				fmt.Printf("%06d %v %v\n\r", newLine.lineNumber, newLine.address, newLine.codes)
+				newLine.raw = ""
+				lineNumber++
+			} else {
+				fmt.Printf("\n\r")
+			}
+
+		} else {
+			if ando.state == ReceiveData {
+				newLine.raw = newLine.raw + string(cbuf[i])
+			} else {
+				fmt.Printf("%c", cbuf[i])
+			}
+		}
+	}
+}
+
+func extractData(l *LineInfo, errors *int) {
+	if strings.HasPrefix(l.raw, "#") {
+		firstCommaPos := strings.Index(l.raw, ",")
+		if firstCommaPos == -1 {
+			log.Printf("Line %v contains no ',' character. Line ignored", l.lineNumber)
+			*errors++
+			return
+		}
+		addressPart := l.raw[1:firstCommaPos]
+		_, err := strconv.ParseUint(addressPart, 16, 32)
+		if err != nil {
+			log.Printf("Error converting address %v Line %v", addressPart, l.lineNumber)
+			*errors++
+			return
+		}
+		l.address = addressPart
+		// or? l.address = string(value)
+
+		valuesPart := l.raw[firstCommaPos+1:]
+		l.codes = strings.Split(valuesPart, ",")
+		if len(l.codes) != 17 {
+			log.Printf("Line contains %v codes (expected 16) at address %v Line %v", len(l.codes), l.address, l.lineNumber)
+			*errors++
+		}
+		if strings.HasSuffix(l.codes[16], "\r") {
+			l.codes[16] = strings.Replace(l.codes[16], "\r", "", -1)
 		}
 	}
 }
