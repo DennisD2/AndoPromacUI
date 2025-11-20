@@ -185,12 +185,6 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, errors *int) {
 }
 
 func dumpLine(newLine LineInfo) {
-	if newLine.address > 100 {
-		return
-	}
-	/*if newLine.address == 0 {
-		return
-	}*/
 	fmt.Printf("%06d %08x", newLine.lineNumber, newLine.address)
 	for _, info := range newLine.codes {
 		fmt.Printf(" %02x", info)
@@ -279,13 +273,13 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.state = NormalInput
 				}
 				if cbuf[0] == 'd' {
+					fmt.Println("\n\r")
 					ando.state = ReceiveData
 					bbuf := make([]byte, 8)
 					bbuf[0] = 'U'
 					bbuf[1] = '7'
 					bbuf[2] = '\r'
 					ando.serial.tty.Write(bbuf)
-
 				}
 				continue
 			}
