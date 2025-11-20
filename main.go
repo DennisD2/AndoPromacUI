@@ -143,25 +143,26 @@ func ttyReader(ando *AndoConnection) {
 				bbuf[0] = '@'
 				ando.serial.tty.Write(bbuf)
 				fmt.Printf("Data receive completed. Read %v lines\n\r", lineNumber-1)
-			}
-			for i := 0; i < num; i++ {
-				if cbuf[i] == '\n' {
-					if ando.state == ReceiveData {
-						newLine.lineNumber = lineNumber
-						ando.lineInfos = append(ando.lineInfos, newLine)
+			} else {
+				for i := 0; i < num; i++ {
+					if cbuf[i] == '\n' {
+						if ando.state == ReceiveData {
+							newLine.lineNumber = lineNumber
+							ando.lineInfos = append(ando.lineInfos, newLine)
 
-						fmt.Printf("%v %v\n\r", newLine.lineNumber, newLine.raw)
-						newLine.raw = ""
-						lineNumber++
-					} else {
-						fmt.Printf("\n\r")
-					}
+							fmt.Printf("%v %v\n\r", newLine.lineNumber, newLine.raw)
+							newLine.raw = ""
+							lineNumber++
+						} else {
+							fmt.Printf("\n\r")
+						}
 
-				} else {
-					if ando.state == ReceiveData {
-						newLine.raw = newLine.raw + string(cbuf[i])
 					} else {
-						fmt.Printf("%c", cbuf[i])
+						if ando.state == ReceiveData {
+							newLine.raw = newLine.raw + string(cbuf[i])
+						} else {
+							fmt.Printf("%c", cbuf[i])
+						}
 					}
 				}
 			}
