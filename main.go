@@ -165,11 +165,11 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInf
 			if ando.state == ReceiveData {
 				newLine.lineNumber = *lineNumber
 				extractData(newLine, errors)
-				if newLine.address > 0 {
-					ando.lineInfos = append(ando.lineInfos, *newLine)
-					dumpLine(*newLine)
-					*lineNumber++
-				}
+				//if newLine.address > 0 {
+				ando.lineInfos = append(ando.lineInfos, *newLine)
+				dumpLine(*newLine)
+				*lineNumber++
+				//}
 				newLine.raw = ""
 
 			} else {
@@ -187,9 +187,13 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInf
 }
 
 // dumpLine pretty print a line received with address and hex codes
-func dumpLine(newLine LineInfo) {
-	fmt.Printf("%06d %08x", newLine.lineNumber, newLine.address)
-	for _, info := range newLine.codes {
+func dumpLine(line LineInfo) {
+	if line.address > 100 {
+		return
+	}
+	fmt.Printf("%06d %08x", line.lineNumber, line.address)
+	//fmt.Printf("%v\n\r", line.raw)
+	for _, info := range line.codes {
 		fmt.Printf(" %02x", info)
 	}
 	fmt.Printf("\n\r")
@@ -197,6 +201,11 @@ func dumpLine(newLine LineInfo) {
 
 // extractData extracts a string representing a line from Programmer device into address and hex values
 func extractData(l *LineInfo, errors *int) {
+	if strings.Contains(l.raw, "[#") {
+		log.Printf("Start line\n\r")
+		index := strings.Index(l.raw, "[#")
+		l.raw = l.raw[index+1:]
+	}
 	if strings.HasPrefix(l.raw, "#") {
 		firstCommaPos := strings.Index(l.raw, ",")
 		if firstCommaPos == -1 {
