@@ -145,7 +145,7 @@ func ttyReader(ando *AndoConnection) {
 				bbuf := make([]byte, 1)
 				bbuf[0] = '@'
 				ando.serial.tty.Write(bbuf)
-				fmt.Printf("Data receive completed. Read %v lines\n\r", lineNumber-1)
+				fmt.Printf("Data receive completed. Read %v lines\n\r", lineNumber)
 				if errors > 0 {
 					fmt.Printf("There were %v errors\n\r", errors)
 					errors = 0
