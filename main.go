@@ -26,10 +26,11 @@ type AndoConnection struct {
 	lineInfos    []LineInfo
 }
 
+// LineInfo info for a line sent by Programmer Device
 type LineInfo struct {
-	lineNumber int
-	address    uint32
-	codes      [16]byte
+	lineNumber int      // number of line
+	address    uint32   // end address of bytes in line
+	codes      [16]byte // 16 bytes
 	raw        string
 }
 
@@ -64,7 +65,7 @@ func main() {
 		0,
 	}
 
-	// Create Connection
+	// Create Device structure
 	ando := AndoConnection{
 		1,           //priv
 		NormalInput, //priv
@@ -124,6 +125,7 @@ func uploadFile(a *AndoConnection, s string, debug int) {
 var newLine LineInfo
 var lineNumber = 0
 
+// ttyReader handle tty input from Programmer device
 func ttyReader(ando *AndoConnection) {
 	cbuf := make([]byte, 128)
 	errors := 0
@@ -157,6 +159,7 @@ func ttyReader(ando *AndoConnection) {
 	}
 }
 
+// handleTTYInput handle the incoming byte sequences according to app state
 func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, errors *int) {
 	for i := 0; i < num; i++ {
 		if cbuf[i] == '\n' {
@@ -184,6 +187,7 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, errors *int) {
 	}
 }
 
+// dumpLine pretty print a line received with address and hex codes
 func dumpLine(newLine LineInfo) {
 	fmt.Printf("%06d %08x", newLine.lineNumber, newLine.address)
 	for _, info := range newLine.codes {
@@ -192,6 +196,7 @@ func dumpLine(newLine LineInfo) {
 	fmt.Printf("\n\r")
 }
 
+// extractData extracts a string representing a line from Programmer device into address and hex values
 func extractData(l *LineInfo, errors *int) {
 	if strings.HasPrefix(l.raw, "#") {
 		firstCommaPos := strings.Index(l.raw, ",")
@@ -207,7 +212,6 @@ func extractData(l *LineInfo, errors *int) {
 			*errors++
 			return
 		}
-		//l.address = addressPart
 		l.address = uint32(value)
 
 		valuesPart := l.raw[firstCommaPos+1:]
