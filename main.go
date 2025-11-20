@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	"os"
@@ -20,6 +21,14 @@ type AndoConnection struct {
 	batch        bool
 	uploadFile   string
 	serial       *AndoSerialConnection
+	lineInfos    []LineInfo
+}
+
+type LineInfo struct {
+	lineNumber int
+	address    string
+	codes      []string
+	raw        string
 }
 
 func main() {
@@ -62,6 +71,7 @@ func main() {
 		*batchPtr,
 		*uploadPtr,
 		&andoSerial,
+		nil,
 	}
 
 	if !ando.dryMode {
@@ -109,6 +119,9 @@ func uploadFile(a *AndoConnection, s string, debug int) {
 	fmt.Println("\n\rBATCH UPLOAD YET UNSUPPORTED\n\r")
 }
 
+var newLine LineInfo
+var lineNumber = 0
+
 func ttyReader(ando *AndoConnection) {
 	cbuf := make([]byte, 128)
 	for ando.continueLoop > 0 {
@@ -121,12 +134,35 @@ func ttyReader(ando *AndoConnection) {
 			fmt.Printf("Error in Read: %s\n", err)
 			ando.continueLoop = 0
 		} else {
-			//fmt.Printf("Read %d: %s\n\r", num, cbuf[:num])
+			str := string(cbuf)
+			if ando.state == ReceiveData && strings.HasPrefix(str, "[PASS]") {
+				// Data receive is complete
+				ando.state = NormalInput
+				// leave S-OUTPUT state
+				bbuf := make([]byte, 1)
+				bbuf[0] = '@'
+				ando.serial.tty.Write(bbuf)
+				fmt.Printf("Data receive completed. Read %v lines\n\r", lineNumber-1)
+			}
 			for i := 0; i < num; i++ {
 				if cbuf[i] == '\n' {
-					fmt.Printf("\n\r")
+					if ando.state == ReceiveData {
+						newLine.lineNumber = lineNumber
+						ando.lineInfos = append(ando.lineInfos, newLine)
+
+						fmt.Printf("%v %v\n\r", newLine.lineNumber, newLine.raw)
+						newLine.raw = ""
+						lineNumber++
+					} else {
+						fmt.Printf("\n\r")
+					}
+
 				} else {
-					fmt.Printf("%c", cbuf[i])
+					if ando.state == ReceiveData {
+						newLine.raw = newLine.raw + string(cbuf[i])
+					} else {
+						fmt.Printf("%c", cbuf[i])
+					}
 				}
 			}
 		}
@@ -136,6 +172,7 @@ func ttyReader(ando *AndoConnection) {
 // localKeyboardReader handles all local keyboard input and interaction
 func localKeyboardReader(ando *AndoConnection) {
 	cbuf := make([]byte, 128)
+
 	consoleReader := bufio.NewReader(os.Stdin)
 	b := make([]byte, 1)
 	fmt.Print("Commands:\n\r")
@@ -145,6 +182,7 @@ func localKeyboardReader(ando *AndoConnection) {
 	fmt.Print(" U 7 <CR>	- Receive Data from Eprommer\n\r")
 	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
 	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
+	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
 	fmt.Print("\n\r")
 	for ando.continueLoop > 0 {
 		fmt.Printf("Command > ")
@@ -172,6 +210,15 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.continueLoop = 0
 					ando.state = NormalInput
 				}
+				if cbuf[0] == 'd' {
+					ando.state = ReceiveData
+					bbuf := make([]byte, 8)
+					bbuf[0] = 'U'
+					bbuf[1] = '7'
+					bbuf[2] = '\r'
+					ando.serial.tty.Write(bbuf)
+
+				}
 				continue
 			}
 
@@ -180,7 +227,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					// If ':' is selected, check next char for command to execute
 					// We switch state to CommandInput for that
 					ando.state = CommandInput
-					fmt.Print("Command (:q):")
+					fmt.Print("Command (:qd):")
 					continue
 				}
 			}

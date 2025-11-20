@@ -33,6 +33,7 @@ const (
 	NormalInput    ConnState = 0
 	CommandInput             = 1
 	CommandCollect           = 2
+	ReceiveData              = 3
 )
 
 // openTTY opens TTY connection
