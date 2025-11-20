@@ -151,7 +151,7 @@ func ttyReader(ando *AndoConnection) {
 				bbuf := make([]byte, 1)
 				bbuf[0] = '@'
 				ando.serial.tty.Write(bbuf)
-				fmt.Printf("Data receive completed. Read %v lines\n\r", lineNumber-1)
+				fmt.Printf("Data receive completed. Read %v bytes in %v lines\n\r", (lineNumber-1)*16, lineNumber-1)
 				if errors > 0 {
 					fmt.Printf("There were %v errors\n\r", errors)
 					errors = 0
@@ -251,18 +251,11 @@ func localKeyboardReader(ando *AndoConnection) {
 
 	consoleReader := bufio.NewReader(os.Stdin)
 	b := make([]byte, 1)
-	fmt.Print("Commands:\n\r")
-	fmt.Print(" @		- RESET\n\r")
-	fmt.Print(" U 9 <CR>	- Quit REMOTE CONTROL\n\r")
-	fmt.Print(" U 6 <CR>	- Send data to Eprommer\n\r")
-	fmt.Print(" U 7 <CR>	- Receive Data from Eprommer\n\r")
-	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
-	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
-	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
-	fmt.Print(" : w		- Write EPROM data to file\n\r")
-	fmt.Print("\n\r")
+	helpText()
 	for ando.continueLoop > 0 {
-		fmt.Printf("Command > ")
+		if ando.state != CommandInput {
+			fmt.Printf("Command > ")
+		}
 		num, err := consoleReader.Read(cbuf)
 		if err != nil {
 			fmt.Println(err)
@@ -280,7 +273,7 @@ func localKeyboardReader(ando *AndoConnection) {
 				// In command mode, execute command based on key input
 				if cbuf[0] == ':' {
 					ando.state = NormalInput
-					fmt.Println(" Back to ODT\n\r")
+					fmt.Println(" Back to normal input handling\n\r")
 					continue
 				}
 				if cbuf[0] == 'q' {
@@ -297,6 +290,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.serial.tty.Write(bbuf)
 				}
 				if cbuf[0] == 'w' {
+					ando.state = NormalInput
 					writeDataToFile(ando)
 				}
 				continue
@@ -307,7 +301,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					// If ':' is selected, check next char for command to execute
 					// We switch state to CommandInput for that
 					ando.state = CommandInput
-					fmt.Print("Command (:qdw):")
+					fmt.Print(" [:qdw] >")
 					continue
 				}
 			}
@@ -324,9 +318,25 @@ func localKeyboardReader(ando *AndoConnection) {
 	}
 }
 
+// helpText print help text
+func helpText() {
+	fmt.Print("Commands:\n\r")
+	fmt.Print(" @		- RESET\n\r")
+	fmt.Print(" U 9 <CR>	- Quit REMOTE CONTROL\n\r")
+	fmt.Print(" U 6 <CR>	- Send data to Eprommer\n\r")
+	fmt.Print(" U 7 <CR>	- Receive Data from Eprommer\n\r")
+	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
+	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
+	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
+	fmt.Print(" : w		- Write EPROM data to file\n\r")
+	fmt.Print("\n\r")
+}
+
+// writeDataToFile writes data from AndoConnection.lineInfos to AndoConnection.downloadFile
 func writeDataToFile(ando *AndoConnection) {
 	numBytes := 0
 	sb := new(strings.Builder)
+	// Convert codes to byte stream
 	for _, line := range ando.lineInfos {
 		for i, code := range line.codes {
 			if i < 16 {
@@ -341,5 +351,5 @@ func writeDataToFile(ando *AndoConnection) {
 		log.Printf("Error Writing file %s\n\r", err)
 		return
 	}
-	fmt.Printf("%v bytes written\n\r", numBytes)
+	fmt.Printf("\n\r%v bytes written to file %v\n\r", numBytes, ando.downloadFile)
 }
