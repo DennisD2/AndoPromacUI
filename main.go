@@ -122,11 +122,10 @@ func uploadFile(a *AndoConnection, s string, debug int) {
 	fmt.Println("\n\rBATCH UPLOAD YET UNSUPPORTED\n\r")
 }
 
-var newLine LineInfo
-var lineNumber = 0
-
 // ttyReader handle tty input from Programmer device
 func ttyReader(ando *AndoConnection) {
+	var newLine LineInfo
+	var lineNumber = 1
 	cbuf := make([]byte, 128)
 	errors := 0
 	for ando.continueLoop > 0 {
@@ -153,23 +152,23 @@ func ttyReader(ando *AndoConnection) {
 					errors = 0
 				}
 			} else {
-				handleTTYInput(ando, num, cbuf, &errors)
+				handleTTYInput(ando, num, cbuf, &newLine, &lineNumber, &errors)
 			}
 		}
 	}
 }
 
 // handleTTYInput handle the incoming byte sequences according to app state
-func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, errors *int) {
+func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
 	for i := 0; i < num; i++ {
 		if cbuf[i] == '\n' {
 			if ando.state == ReceiveData {
-				newLine.lineNumber = lineNumber
-				extractData(&newLine, errors)
+				newLine.lineNumber = *lineNumber
+				extractData(newLine, errors)
 				if newLine.address > 0 {
-					ando.lineInfos = append(ando.lineInfos, newLine)
-					dumpLine(newLine)
-					lineNumber++
+					ando.lineInfos = append(ando.lineInfos, *newLine)
+					dumpLine(*newLine)
+					*lineNumber++
 				}
 				newLine.raw = ""
 
