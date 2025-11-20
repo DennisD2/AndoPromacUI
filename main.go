@@ -28,8 +28,8 @@ type AndoConnection struct {
 
 type LineInfo struct {
 	lineNumber int
-	address    string
-	codes      []string
+	address    uint32
+	codes      [16]byte
 	raw        string
 }
 
@@ -162,12 +162,14 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, errors *int) {
 		if cbuf[i] == '\n' {
 			if ando.state == ReceiveData {
 				newLine.lineNumber = lineNumber
-				ando.lineInfos = append(ando.lineInfos, newLine)
-
 				extractData(&newLine, errors)
-				fmt.Printf("%06d %v %v\n\r", newLine.lineNumber, newLine.address, newLine.codes)
+				if newLine.address > 0 {
+					ando.lineInfos = append(ando.lineInfos, newLine)
+					dumpLine(newLine)
+					lineNumber++
+				}
 				newLine.raw = ""
-				lineNumber++
+
 			} else {
 				fmt.Printf("\n\r")
 			}
@@ -182,6 +184,20 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, errors *int) {
 	}
 }
 
+func dumpLine(newLine LineInfo) {
+	if newLine.address > 100 {
+		return
+	}
+	/*if newLine.address == 0 {
+		return
+	}*/
+	fmt.Printf("%06d %08x", newLine.lineNumber, newLine.address)
+	for _, info := range newLine.codes {
+		fmt.Printf(" %02x", info)
+	}
+	fmt.Printf("\n\r")
+}
+
 func extractData(l *LineInfo, errors *int) {
 	if strings.HasPrefix(l.raw, "#") {
 		firstCommaPos := strings.Index(l.raw, ",")
@@ -191,23 +207,32 @@ func extractData(l *LineInfo, errors *int) {
 			return
 		}
 		addressPart := l.raw[1:firstCommaPos]
-		_, err := strconv.ParseUint(addressPart, 16, 32)
+		value, err := strconv.ParseUint(addressPart, 16, 32)
 		if err != nil {
 			log.Printf("Error converting address %v Line %v", addressPart, l.lineNumber)
 			*errors++
 			return
 		}
-		l.address = addressPart
-		// or? l.address = string(value)
+		//l.address = addressPart
+		l.address = uint32(value)
 
 		valuesPart := l.raw[firstCommaPos+1:]
-		l.codes = strings.Split(valuesPart, ",")
-		if len(l.codes) != 17 {
+		codes := strings.Split(valuesPart, ",")
+		if len(codes) != 17 {
 			log.Printf("Line contains %v codes (expected 16) at address %v Line %v", len(l.codes), l.address, l.lineNumber)
 			*errors++
 		}
-		if strings.HasSuffix(l.codes[16], "\r") {
-			l.codes[16] = strings.Replace(l.codes[16], "\r", "", -1)
+		if strings.HasSuffix(codes[16], "\r") {
+			codes[16] = strings.Replace(codes[16], "\r", "", -1)
+		}
+		for i := 0; i < 16; i++ {
+			value, err := strconv.ParseUint(codes[i], 16, 8)
+			if err != nil {
+				log.Printf("Error converting value %v, index %v, in Line %v", codes[i], i, l.lineNumber)
+				*errors++
+				return
+			}
+			l.codes[i] = byte(value)
 		}
 	}
 }
