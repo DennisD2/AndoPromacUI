@@ -186,7 +186,7 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInf
 
 // dumpLine pretty print a line received with address and hex codes
 func dumpLine(line LineInfo) {
-	/*if line.address > 100 {
+	/*if line.address > 100 && line.address < 0x3f00 {
 		return
 	}*/
 	fmt.Printf("%06d %08x", line.lineNumber, line.address)
