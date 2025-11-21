@@ -28,7 +28,7 @@ func main() {
 		"Non-interactive (batch) mode")
 	uploadPtr := flag.String("infile", "in.bin",
 		"Input file for EPROM data to upload to EPrommer")
-	downloadPtr := flag.String("outfile", "out.bin",
+	downloadPtr := flag.String("outfile", "out",
 		"Output file for EPROM data downloaded from EPrommer")
 	flag.Parse()
 
@@ -36,7 +36,7 @@ func main() {
 	fmt.Printf("--dry-run: %t\n", *dryRunPtr)
 	fmt.Printf("--debug: %d\n", *debugPtr)
 	fmt.Printf("--baudrate: %d\n", *baudratePtr)
-	fmt.Printf("--outfile: %s\n", *downloadPtr)
+	fmt.Printf("--outfile: %s<checksum>.bin\n", *downloadPtr)
 	fmt.Printf("--batch: %t (batch mode not yet supported)\n", *batchPtr)
 	fmt.Printf("--infile: %s\n", *uploadPtr)
 
@@ -346,12 +346,19 @@ func writeDataToFile(ando *AndoConnection) {
 		}
 	}
 	// Write file
-	err := os.WriteFile(ando.downloadFile, []byte(sb.String()), 0644)
+	filename := createFileName(ando.downloadFile, ando.checksum)
+	err := os.WriteFile(filename, []byte(sb.String()), 0644)
 	if err != nil {
 		log.Printf("Error Writing file %s\n\r", err)
 		return
 	}
-	fmt.Printf("\n\rWrote %v bytes to file %v\n\r", numBytes, ando.downloadFile)
+	fmt.Printf("\n\rWrote %v bytes to file\n\r", numBytes)
+}
+
+func createFileName(file string, checksum uint32) string {
+	fname := fmt.Sprintf("%v-%06x.bin", file, checksum)
+	log.Printf("Created file name: %v", fname)
+	return fname
 }
 
 // uploadFile uploads local file to EPrommer's RAM buffer
