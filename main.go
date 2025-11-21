@@ -411,6 +411,7 @@ func uploadFile(ando *AndoConnection) {
 		ando.serial.tty.Write(b)
 		i++
 	}
+	//ando.state = WaitForPassMessage
 
 	// device will need some time to process all data
 	// We need to wait for "[PASS]" answer
