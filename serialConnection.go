@@ -18,22 +18,18 @@ type AndoSerialConnection struct {
 	device   string
 	baudrate int
 	timeout  time.Duration
-	//continueLoop int
-	//state        ConnState
 	//dryMode      bool
 	//debug        int
 	//batch        bool
-	//uploadFile   string
 }
 
 // ConnState State of Connection
 type ConnState int
 
 const (
-	NormalInput    ConnState = 0
-	CommandInput             = 1
-	CommandCollect           = 2
-	ReceiveData              = 3
+	NormalInput  ConnState = 0
+	CommandInput           = 1
+	ReceiveData            = 3
 )
 
 // openTTY opens TTY connection

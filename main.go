@@ -16,15 +16,15 @@ import (
 
 // Connection connection to Eprommer
 type AndoConnection struct {
-	continueLoop int
-	state        ConnState
-	dryMode      bool
-	debug        int
-	batch        bool
-	uploadFile   string
-	downloadFile string
-	serial       *AndoSerialConnection
-	lineInfos    []LineInfo
+	continueLoop int                   // true as long as command loop runs
+	state        ConnState             // state of app
+	dryMode      bool                  // dry mode means do not really invoke EPrommer device
+	debug        int                   // debug level
+	batch        bool                  // batch mode
+	uploadFile   string                // file to upload to EPrommer device
+	downloadFile string                // file to download from EPrommer device
+	serial       *AndoSerialConnection // Serial onnection structure used
+	lineInfos    []LineInfo            // internal representation of EPROM data during download
 }
 
 // LineInfo info for a line sent by Programmer Device
@@ -32,13 +32,13 @@ type LineInfo struct {
 	lineNumber int      // number of line
 	address    uint32   // end address of bytes in line
 	codes      [16]byte // 16 bytes
-	raw        string
+	raw        string   // raw chars received from EPrommer device
 }
 
 func main() {
 	fmt.Println("Ando/Promac EPROM Programmer Communication UI")
 	devicePtr := flag.String("device", "/dev/ttyUSB0",
-		"TTY device used to access Eprommer")
+		"TTY device used to access EPrommer")
 	dryRunPtr := flag.Bool("dry-run", false,
 		"Dry run mode")
 	debugPtr := flag.Int("debug", 0,
@@ -48,9 +48,9 @@ func main() {
 	batchPtr := flag.Bool("batch", false,
 		"Non-interactive (batch) mode")
 	uploadPtr := flag.String("infile", "in.bin",
-		"Input file to upload")
+		"Input file for EPROM data to upload to EPrommer")
 	downloadPtr := flag.String("outfile", "out.bin",
-		"Input file to upload")
+		"Output file for EPROM data downloaded from EPRommer")
 	flag.Parse()
 
 	fmt.Printf("--device, TTY Device: %s\n", *devicePtr)
@@ -59,7 +59,7 @@ func main() {
 	fmt.Printf("--baudrate: %d\n", *baudratePtr)
 	fmt.Printf("--outfile: %s\n", *downloadPtr)
 	fmt.Printf("--batch: %t (batch mode not yet supported)\n", *batchPtr)
-	fmt.Printf("--infile: %s (batch mode not yet supported)\n", *uploadPtr)
+	fmt.Printf("--infile: %s\n", *uploadPtr)
 
 	// Create serial connection
 	andoSerial := AndoSerialConnection{
@@ -115,16 +115,12 @@ func main() {
 		}
 	} else {
 		// just upload
-		uploadFile(&ando, *uploadPtr, ando.debug)
+		//uploadFile(&ando)
 	}
 
 	fmt.Println("\n\rQuitting Ando/Promac EPROM Programmer Communication UI\n\r")
 	term.Restore(int(os.Stdin.Fd()), oldState)
 	os.Exit(0)
-}
-
-func uploadFile(a *AndoConnection, s string, debug int) {
-	fmt.Println("\n\rBATCH UPLOAD YET UNSUPPORTED\n\r")
 }
 
 // ttyReader handle tty input from Programmer device
@@ -251,7 +247,7 @@ func localKeyboardReader(ando *AndoConnection) {
 
 	consoleReader := bufio.NewReader(os.Stdin)
 	b := make([]byte, 1)
-	helpText()
+	helpText(ando)
 	for ando.continueLoop > 0 {
 		if ando.state != CommandInput {
 			fmt.Printf("Command > ")
@@ -293,6 +289,10 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.state = NormalInput
 					writeDataToFile(ando)
 				}
+				if cbuf[0] == 'u' {
+					ando.state = NormalInput
+					uploadFile(ando)
+				}
 				continue
 			}
 
@@ -319,7 +319,7 @@ func localKeyboardReader(ando *AndoConnection) {
 }
 
 // helpText print help text
-func helpText() {
+func helpText(ando *AndoConnection) {
 	fmt.Print("Commands:\n\r")
 	fmt.Print(" @		- RESET\n\r")
 	fmt.Print(" U 9 <CR>	- Quit REMOTE CONTROL\n\r")
@@ -328,11 +328,13 @@ func helpText() {
 	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
 	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
 	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
-	fmt.Print(" : w		- Write EPROM data to file\n\r")
+	fmt.Printf(" : w		- Write EPROM data to file %v\n\r", ando.downloadFile)
+	fmt.Printf(" : u		- Upload EPROM data from file %v to EPrommer\n\r", ando.uploadFile)
 	fmt.Print("\n\r")
 }
 
-// writeDataToFile writes data from AndoConnection.lineInfos to AndoConnection.downloadFile
+// writeDataToFile writes data from AndoConnection.lineInfos to AndoConnection.downloadFile,
+// data is written to EPrommer's RAM buffer
 func writeDataToFile(ando *AndoConnection) {
 	numBytes := 0
 	sb := new(strings.Builder)
@@ -351,5 +353,72 @@ func writeDataToFile(ando *AndoConnection) {
 		log.Printf("Error Writing file %s\n\r", err)
 		return
 	}
-	fmt.Printf("\n\r%v bytes written to file %v\n\r", numBytes, ando.downloadFile)
+	fmt.Printf("\n\rWrote %v bytes to file %v\n\r", numBytes, ando.downloadFile)
+}
+
+// uploadFile uploads local file to EPrommer's RAM buffer
+func uploadFile(ando *AndoConnection) {
+	sb := new(strings.Builder)
+
+	// Read in file
+	bytes, err := os.ReadFile(ando.uploadFile)
+	if err != nil {
+		log.Printf("Error loading input file %s: %s\n\r", ando.uploadFile, err)
+		return
+	}
+	log.Printf("Loaded input file %s, %v bytes\n", ando.uploadFile, len(bytes))
+
+	// Write prefix char
+	sb.WriteString("[")
+
+	address := 0
+	i := 0
+	bytesInLine := 0
+	for i < len(bytes) {
+		if i%16 == 0 {
+			str := fmt.Sprintf("#%08x,", address)
+			sb.WriteString(strings.ToUpper(str))
+			address += 16
+			bytesInLine = 0
+		}
+		b := bytes[i]
+		str := fmt.Sprintf("%02x,", b)
+		sb.WriteString(strings.ToUpper(str))
+
+		i++
+		bytesInLine++
+		if bytesInLine == 16 {
+			sb.WriteString("\r")
+		}
+	}
+	log.Printf("\n\rUpload buffer has size %v bytes\n\r", sb.Len())
+
+	// Send data collected
+	bbuf := make([]byte, 3)
+	bbuf[0] = 'U'
+	bbuf[1] = '6'
+	bbuf[2] = '\r'
+	ando.serial.tty.Write(bbuf)
+	// give some time to have command understood
+	time.Sleep(100 * time.Millisecond)
+
+	i = 0
+	sendString := sb.String()
+	b := make([]byte, 1)
+	for i < len(sendString) {
+		//fmt.Printf("%c\n\r", sendString[i])
+		b[0] = byte(sendString[i])
+		ando.serial.tty.Write(b)
+		i++
+	}
+
+	// device will need some time to process all data
+	// We need to wait for "[PASS]" answer
+	// only then, the final RESET '@' will be handled by device.
+	// If we do not wait, the Programmer stays in S-INPUT mode, and we have to enter RESET via device key "RESET"
+	// or send it via "Ando/Promac EPROM Programmer Communication UI" by using the '@' key
+	b[0] = '@'
+	ando.serial.tty.Write(b)
+
+	log.Printf("\n\rUploaded %v bytes from file %v\n\r", i, ando.uploadFile)
 }
