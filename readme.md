@@ -60,3 +60,8 @@ The last 4 digits of the checksum should be identical to checksum from Ando AF-9
 programmer, which is shown after DEVICE->COPY on its display.
 
 ## Testing
+
+## Restrictions
+The software uses package "golang.org/x/term" and was only tested with Linux.
+I do not know if that package exists for other operating systems,
+So software might only run on Linux.
