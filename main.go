@@ -99,7 +99,9 @@ func main() {
 	}
 
 	fmt.Println("\n\rQuitting Ando/Promac EPROM Programmer Communication UI\n\r")
-	term.Restore(int(os.Stdin.Fd()), oldState)
+	if !ando.batch {
+		term.Restore(int(os.Stdin.Fd()), oldState)
+	}
 	os.Exit(0)
 }
 
