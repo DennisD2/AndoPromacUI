@@ -29,7 +29,7 @@ func main() {
 	uploadPtr := flag.String("infile", "in.bin",
 		"Input file for EPROM data to upload to EPrommer")
 	downloadPtr := flag.String("outfile", "out.bin",
-		"Output file for EPROM data downloaded from EPRommer")
+		"Output file for EPROM data downloaded from EPrommer")
 	flag.Parse()
 
 	fmt.Printf("--device, TTY Device: %s\n", *devicePtr)
@@ -309,8 +309,8 @@ func helpText(ando *AndoConnection) {
 	fmt.Print("Commands:\n\r")
 	fmt.Print(" @		- RESET\n\r")
 	fmt.Print(" U 9 <CR>	- Quit REMOTE CONTROL\n\r")
-	fmt.Print(" U 6 <CR>	- Send data to Eprommer\n\r")
-	fmt.Print(" U 7 <CR>	- Receive Data from Eprommer\n\r")
+	fmt.Print(" U 6 <CR>	- Send data to EPrommer\n\r")
+	fmt.Print(" U 7 <CR>	- Receive Data from EPrommer\n\r")
 	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
 	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
 	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
