@@ -133,7 +133,7 @@ func ttyReader(ando *AndoConnection) {
 				if ando.state == ReceiveData || ando.state == SendData {
 					// Data receive/send is complete
 					ando.state = NormalInput
-					// leave S-OUTPUT state
+					// leave S-OUTPUT or S-INPUT state, by sending RESET character
 					bbuf := make([]byte, 1)
 					bbuf[0] = '@'
 					ando.serial.tty.Write(bbuf)
