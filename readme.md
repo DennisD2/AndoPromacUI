@@ -31,19 +31,32 @@ Ando/Promac EPROM Programmer Communication UI
 --dry-run: false
 --debug: 0
 --baudrate: 19200
---outfile: out.bin
+--outfile: out-<checksum>.bin
 --batch: false (batch mode not yet supported)
 --infile: in.bin
 Commands:
  @              - RESET
+ P A <CR>       - DEVICE-COPY
+ P C <CR>       - DEVICE-BLANK
+ P D <CR>       - DEVICE-PROGRAM
+ P E <CR>       - DEVICE-VERIFY
  U 9 <CR>       - Quit REMOTE CONTROL
- U 6 <CR>       - Send data to Eprommer
- U 7 <CR>       - Receive Data from Eprommer
+ U 6 <CR>       - Send data to EPrommer
+ U 7 <CR>       - Receive Data from EPrommer
  U 8 <CR>       - VERIFY
+Compound Commands:
  : q            - Quit Ando/Promac EPROM Programmer Communication UI
  : d            - Download EPROM data (like U7)
- : w            - Write EPROM data to file out.bin
+ : w            - Write EPROM data to file out-<checksum>.bin
  : u            - Upload EPROM data from file in.bin to EPrommer
+
+Command > 
 ```
+
+During download from EPrommer, a checksum is calculated from all bytes downloaded.
+This is an uint32 sum of all byte values in EPROM. The checksum is being used for the
+filename for saved EPROM data.
+The last 4 digits of the checksum should be identical to checksum from Ando AF-9704
+programmer, which is shown after DEVICE->COPY on its display.
 
 ## Testing
