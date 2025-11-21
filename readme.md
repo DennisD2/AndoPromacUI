@@ -2,6 +2,8 @@
 Control of vintage Eprommer via textual UI.
 Eprommer is accessed via serial cable and a serial<->USB adapter.
 
+![20251121_150625.jpg](docs/20251121_150625.jpg)
+
 Eprommer can be controlled (e.g. the key functions are supported)
 and EPROM data can be uploaded and downloaded.
 
@@ -52,6 +54,9 @@ Compound Commands:
 
 Command > 
 ```
+All possible commands can be entered on command line, for a list of commands check the 
+programmers manual. A few of the commands have been implemented as "Compound Commands"
+in the app, to make download/upload easier.
 
 During download from EPrommer, a checksum is calculated from all bytes downloaded.
 This is an uint32 sum of all byte values in EPROM. The checksum is being used for the
@@ -59,8 +64,9 @@ filename for saved EPROM data.
 The last 4 digits of the checksum should be identical to checksum from Ando AF-9704
 programmer, which is shown after DEVICE->COPY on its display.
 
-## Cabeling
-I am using a simple USB<->Serial adapter. See what adaptors I've used to have it working.
+## Cable connections required
+I am using a simple USB<->Serial adapter. See what additional adaptors I've used to have 
+it working.
 
 ![20251118_090940.jpg](docs/20251118_090940.jpg)
 
@@ -68,3 +74,6 @@ I am using a simple USB<->Serial adapter. See what adaptors I've used to have it
 The software uses package "golang.org/x/term" and was only tested with Linux.
 I do not know if that package exists for other operating systems,
 So software might only run on Linux.
+
+## Further reading
+* [JMC Promac Model 2A Programmer Manual](docs/jmc-promac-2a-ep-programmer-manual.pdf)
