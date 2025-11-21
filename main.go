@@ -36,7 +36,7 @@ func main() {
 	fmt.Printf("--dry-run: %t\n", *dryRunPtr)
 	fmt.Printf("--debug: %d\n", *debugPtr)
 	fmt.Printf("--baudrate: %d\n", *baudratePtr)
-	fmt.Printf("--outfile: %s<checksum>.bin\n", *downloadPtr)
+	fmt.Printf("--outfile: %s-<checksum>.bin\n", *downloadPtr)
 	fmt.Printf("--batch: %t (batch mode not yet supported)\n", *batchPtr)
 	fmt.Printf("--infile: %s\n", *uploadPtr)
 
@@ -328,7 +328,7 @@ func helpText(ando *AndoConnection) {
 	fmt.Print("Compound Commands:\n\r")
 	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
 	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
-	fmt.Printf(" : w		- Write EPROM data to file %v\n\r", ando.downloadFile)
+	fmt.Printf(" : w		- Write EPROM data to file %v-<checksum>.bin\n\r", ando.downloadFile)
 	fmt.Printf(" : u		- Upload EPROM data from file %v to EPrommer\n\r", ando.uploadFile)
 	fmt.Print("\n\r")
 }
