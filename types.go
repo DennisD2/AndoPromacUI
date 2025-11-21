@@ -25,3 +25,24 @@ const (
 	ReceiveData                  = 3
 	WaitForPassMessage           = 4
 )
+
+// Connection connection to Eprommer
+type AndoConnection struct {
+	continueLoop int                   // true as long as command loop runs
+	state        ConnState             // state of app
+	dryMode      bool                  // dry mode means do not really invoke EPrommer device
+	debug        int                   // debug level
+	batch        bool                  // batch mode
+	uploadFile   string                // file to upload to EPrommer device
+	downloadFile string                // file to download from EPrommer device
+	serial       *AndoSerialConnection // Serial onnection structure used
+	lineInfos    []LineInfo            // internal representation of EPROM data during download
+}
+
+// LineInfo info for a line sent by Programmer Device
+type LineInfo struct {
+	lineNumber int      // number of line
+	address    uint32   // end address of bytes in line
+	codes      [16]byte // 16 bytes
+	raw        string   // raw chars received from EPrommer device
+}
