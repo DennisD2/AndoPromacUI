@@ -126,6 +126,7 @@ func ttyReader(ando *AndoConnection) {
 						fmt.Printf("There were %v errors\n\r", errors)
 						errors = 0
 					}
+					lineNumber = 1
 				}
 				if ando.state == SendData {
 					log.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
@@ -263,6 +264,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.state = NormalInput
 				}
 				if cbuf[0] == 'd' {
+					ando.lineInfos = nil
 					fmt.Println("\n\r")
 					ando.state = ReceiveData
 					bbuf := make([]byte, 8)
