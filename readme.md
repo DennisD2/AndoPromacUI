@@ -58,6 +58,9 @@ All possible commands can be entered on command line, for a list of commands che
 programmers manual. A few of the commands have been implemented as "Compound Commands"
 in the app, to make download/upload easier.
 
+Mapping of command keys and keys on computer keyboard:
+![remote-keypad.png](docs/remote-keypad.png)
+
 During download from EPrommer, a checksum is calculated from all bytes downloaded.
 This is an uint32 sum of all byte values in EPROM. The checksum is being used for the
 filename for saved EPROM data.
