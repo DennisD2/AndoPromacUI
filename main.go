@@ -121,12 +121,6 @@ func ttyReader(ando *AndoConnection) {
 			str := string(cbuf)
 			if strings.HasPrefix(str, "[PASS]") {
 				if ando.state == ReceiveData {
-					// Data receive is complete
-					ando.state = NormalInput
-					// leave S-OUTPUT state
-					bbuf := make([]byte, 1)
-					bbuf[0] = '@'
-					ando.serial.tty.Write(bbuf)
 					log.Printf("Data receive completed. Read %v bytes in %v lines\n\r", (lineNumber-1)*16, lineNumber-1)
 					if errors > 0 {
 						fmt.Printf("There were %v errors\n\r", errors)
@@ -134,13 +128,15 @@ func ttyReader(ando *AndoConnection) {
 					}
 				}
 				if ando.state == SendData {
-					// Data send is complete
+					log.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
+				}
+				if ando.state == ReceiveData || ando.state == SendData {
+					// Data receive/send is complete
 					ando.state = NormalInput
-					// leave S-INPUT state
+					// leave S-OUTPUT state
 					bbuf := make([]byte, 1)
 					bbuf[0] = '@'
 					ando.serial.tty.Write(bbuf)
-					log.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
 				}
 			} else {
 				handleTTYInput(ando, num, cbuf, &newLine, &lineNumber, &errors)
