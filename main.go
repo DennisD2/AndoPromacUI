@@ -400,8 +400,9 @@ func uploadFile(ando *AndoConnection) {
 
 	// device will need some time to process all data
 	// We need to wait for "[PASS]" answer
-	// only then, the final RESET '@' will be handled by device.
+	// only then, the final RESET '@' we like to send will be handled by device.
 	// If we do not wait, the Programmer stays in S-INPUT mode, and we have to enter RESET via device key "RESET"
 	// or send it via "Ando/Promac EPROM Programmer Communication UI" by using the '@' key
+	// So we go to new state and wait there for incoming "[PASS]" message
 	ando.state = SendData
 }
