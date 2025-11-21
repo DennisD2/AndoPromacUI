@@ -59,6 +59,7 @@ func main() {
 		*downloadPtr,
 		&andoSerial,
 		nil,
+		0,
 	}
 
 	if !ando.dryMode {
@@ -122,6 +123,7 @@ func ttyReader(ando *AndoConnection) {
 			if strings.HasPrefix(str, "[PASS]") {
 				if ando.state == ReceiveData {
 					log.Printf("Data receive completed. Read %v bytes in %v lines\n\r", (lineNumber-1)*16, lineNumber-1)
+					log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
 					if errors > 0 {
 						fmt.Printf("There were %v errors\n\r", errors)
 						errors = 0
@@ -152,7 +154,7 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInf
 		if cbuf[i] == '\n' {
 			if ando.state == ReceiveData {
 				newLine.lineNumber = *lineNumber
-				valid := extractData(newLine, errors)
+				valid := extractData(newLine, errors, &ando.checksum)
 				if valid {
 					ando.lineInfos = append(ando.lineInfos, *newLine)
 					dumpLine(*newLine)
@@ -186,7 +188,7 @@ func dumpLine(line LineInfo) {
 }
 
 // extractData extracts a string representing a line from Programmer device into address and hex values
-func extractData(l *LineInfo, errors *int) bool {
+func extractData(l *LineInfo, errors *int, checksum *uint32) bool {
 	if strings.Contains(l.raw, "[#") {
 		log.Printf("Start line\n\r")
 		index := strings.Index(l.raw, "[#")
@@ -221,7 +223,9 @@ func extractData(l *LineInfo, errors *int) bool {
 				*errors++
 				return false
 			}
-			l.codes[i] = byte(value)
+			val := uint8(value)
+			l.codes[i] = val
+			*checksum += uint32(val)
 		}
 		return true
 	}
@@ -265,6 +269,7 @@ func localKeyboardReader(ando *AndoConnection) {
 				}
 				if cbuf[0] == 'd' {
 					ando.lineInfos = nil
+					ando.checksum = 0
 					fmt.Println("\n\r")
 					ando.state = ReceiveData
 					bbuf := make([]byte, 8)

@@ -37,6 +37,7 @@ type AndoConnection struct {
 	downloadFile string                // file to download from EPrommer device
 	serial       *AndoSerialConnection // Serial onnection structure used
 	lineInfos    []LineInfo            // internal representation of EPROM data during download
+	checksum     uint32                // checksum value
 }
 
 // LineInfo info for a line sent by Programmer Device
