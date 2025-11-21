@@ -119,17 +119,28 @@ func ttyReader(ando *AndoConnection) {
 			ando.continueLoop = 0
 		} else {
 			str := string(cbuf)
-			if ando.state == ReceiveData && strings.HasPrefix(str, "[PASS]") {
-				// Data receive is complete
-				ando.state = NormalInput
-				// leave S-OUTPUT state
-				bbuf := make([]byte, 1)
-				bbuf[0] = '@'
-				ando.serial.tty.Write(bbuf)
-				fmt.Printf("Data receive completed. Read %v bytes in %v lines\n\r", (lineNumber-1)*16, lineNumber-1)
-				if errors > 0 {
-					fmt.Printf("There were %v errors\n\r", errors)
-					errors = 0
+			if strings.HasPrefix(str, "[PASS]") {
+				if ando.state == ReceiveData {
+					// Data receive is complete
+					ando.state = NormalInput
+					// leave S-OUTPUT state
+					bbuf := make([]byte, 1)
+					bbuf[0] = '@'
+					ando.serial.tty.Write(bbuf)
+					log.Printf("Data receive completed. Read %v bytes in %v lines\n\r", (lineNumber-1)*16, lineNumber-1)
+					if errors > 0 {
+						fmt.Printf("There were %v errors\n\r", errors)
+						errors = 0
+					}
+				}
+				if ando.state == SendData {
+					// Data send is complete
+					ando.state = NormalInput
+					// leave S-INPUT state
+					bbuf := make([]byte, 1)
+					bbuf[0] = '@'
+					ando.serial.tty.Write(bbuf)
+					log.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
 				}
 			} else {
 				handleTTYInput(ando, num, cbuf, &newLine, &lineNumber, &errors)
@@ -370,7 +381,7 @@ func uploadFile(ando *AndoConnection) {
 			sb.WriteString("\r")
 		}
 	}
-	log.Printf("\n\rUpload buffer has size %v bytes\n\r", sb.Len())
+	log.Printf("Upload buffer has size %v bytes. Please wait for upload to complete...\n\r", sb.Len())
 
 	// Send data collected
 	bbuf := make([]byte, 3)
@@ -390,15 +401,11 @@ func uploadFile(ando *AndoConnection) {
 		ando.serial.tty.Write(b)
 		i++
 	}
-	//ando.state = WaitForPassMessage
 
 	// device will need some time to process all data
 	// We need to wait for "[PASS]" answer
 	// only then, the final RESET '@' will be handled by device.
 	// If we do not wait, the Programmer stays in S-INPUT mode, and we have to enter RESET via device key "RESET"
 	// or send it via "Ando/Promac EPROM Programmer Communication UI" by using the '@' key
-	b[0] = '@'
-	ando.serial.tty.Write(b)
-
-	log.Printf("\n\rUploaded %v bytes from file %v\n\r", i, ando.uploadFile)
+	ando.state = SendData
 }

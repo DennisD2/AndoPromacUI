@@ -20,10 +20,10 @@ type AndoSerialConnection struct {
 type ConnState int
 
 const (
-	NormalInput        ConnState = 0
-	CommandInput                 = 1
-	ReceiveData                  = 3
-	WaitForPassMessage           = 4
+	NormalInput  ConnState = 0
+	CommandInput           = 1
+	ReceiveData            = 3
+	SendData               = 4
 )
 
 // Connection connection to Eprommer
