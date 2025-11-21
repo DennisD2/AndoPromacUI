@@ -59,7 +59,10 @@ filename for saved EPROM data.
 The last 4 digits of the checksum should be identical to checksum from Ando AF-9704
 programmer, which is shown after DEVICE->COPY on its display.
 
-## Testing
+## Cabeling
+I am using a simple USB<->Serial adapter. See what adaptors I've used to have it working.
+
+![20251118_090940.jpg](docs/20251118_090940.jpg)
 
 ## Restrictions
 The software uses package "golang.org/x/term" and was only tested with Linux.
