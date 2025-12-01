@@ -50,8 +50,9 @@ func initHp64KFormat(ando *AndoConnection) {
 func handleHP64KABSInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
 	for i := 0; i < num; i++ {
 		b := uint8(cbuf[i])
-		fmt.Printf("%02x ", b)
-
+		if ando.debug > 1 {
+			fmt.Printf("%02x ", b)
+		}
 		if ando.hp64k.state == HP64K_SOF {
 			handleSOFRecord(ando, b)
 
@@ -60,7 +61,9 @@ func handleHP64KABSInput(ando *AndoConnection, num int, cbuf []byte, newLine *Li
 		}
 
 	}
-	fmt.Printf("\n\r")
+	if ando.debug > 1 {
+		fmt.Printf("\n\r")
+	}
 }
 
 // handleRecordData handle Data record
@@ -73,7 +76,7 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int) {
 
 			if b == 0x0 {
 				ando.hp64k.state = HP64K_EOF
-				fmt.Printf("End-Of-File record received")
+				fmt.Printf("End-Of-File record received\n\r")
 			}
 		}
 		if ando.transferPosition == 1 {
@@ -147,15 +150,18 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int) {
 
 // dumpRecordData dump a Data record
 func dumpRecordData(ando *AndoConnection, record *DataRecord) {
-	fmt.Printf("data.wordCount=%d\n\r", record.wordCount)
-	fmt.Printf("data.byteCount=%d\n\r", record.byteCount)
-	fmt.Printf("data.targetAddress=0x%04x\n\r", record.targetAddress)
-	fmt.Printf("data.bytes=[")
+	if ando.debug > 1 {
+		fmt.Printf("data.wordCount=%d\n\r", record.wordCount)
+		fmt.Printf("data.byteCount=%d\n\r", record.byteCount)
+	}
+	fmt.Printf("0x%04x: ", record.targetAddress)
 	for _, b := range record.bytes {
 		fmt.Printf("%02x ", b)
 	}
-	fmt.Printf("]\n\r")
-	fmt.Printf("data.checksum=0x%02x\n\r", record.checksum)
+	fmt.Printf("\n\r")
+	if ando.debug > 1 {
+		fmt.Printf("data.checksum=0x%02x\n\r", record.checksum)
+	}
 }
 
 // handleSOFRecord handle Start-Of-File record
@@ -207,7 +213,7 @@ func handleSOFRecord(ando *AndoConnection, b uint8) {
 			fmt.Printf("Start-Of-File record checksum ok!\n\r")
 		}
 
-		dumpSOFRecord(ando.hp64k.sof)
+		dumpSOFRecord(ando, ando.hp64k.sof)
 
 		// set up vars for next record
 		ando.hp64k.state = HP64K_Data_Header
@@ -221,10 +227,12 @@ func handleSOFRecord(ando *AndoConnection, b uint8) {
 }
 
 // dumpSOFRecord dumps a Start-Of-File record
-func dumpSOFRecord(record *StartOfFileRecord) {
-	fmt.Printf("sof.wordCount=%d\n\r", record.wordCount)
-	fmt.Printf("sof.dataBusWidth=%d\n\r", record.dataBusWidth)
-	fmt.Printf("sof.dataWidthBase=%d\n\r", record.dataWidthBase)
-	fmt.Printf("sof.transferAddress=0x%04x\n\r", record.transferAddress)
-	fmt.Printf("sof.checksum=0x%02x\n\r", record.checksum)
+func dumpSOFRecord(ando *AndoConnection, record *StartOfFileRecord) {
+	if ando.debug > 1 {
+		fmt.Printf("sof.wordCount=%d\n\r", record.wordCount)
+		fmt.Printf("sof.dataBusWidth=%d\n\r", record.dataBusWidth)
+		fmt.Printf("sof.dataWidthBase=%d\n\r", record.dataWidthBase)
+		fmt.Printf("sof.transferAddress=0x%04x\n\r", record.transferAddress)
+		fmt.Printf("sof.checksum=0x%02x\n\r", record.checksum)
+	}
 }
