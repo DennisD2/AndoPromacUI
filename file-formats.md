@@ -9,12 +9,12 @@ Format is:
 #### start-of-file record
 Data file begins with start-of-file record. 
 
-| Size in bytes | Value       | Meaning                                                                                              |
-|---------------|-------------|------------------------------------------------------------------------------------------------------|
-| 1?            | 4 (always)  | word count - # of 16-bit words in record (w/o checksum and this byte itself  , so 8 bytes = 4 words) |
-| 2             | ?           | data bus width                                                                                       |
-| 2             | ?           | data width base                                                                                      |
-| 4             | ?           | transfer address                                                                                     |
+| Size in bytes | Value        | Meaning                                                                                              |
+|---------------|--------------|------------------------------------------------------------------------------------------------------|
+| 1             | 4 (always)   | word count - # of 16-bit words in record (w/o checksum and this byte itself  , so 8 bytes = 4 words) |
+| 2             | (calculated) | data bus width                                                                                       |
+| 2             | (calculated) | data width base                                                                                      |
+| 4             | (calculated) | transfer address                                                                                     |
 | 1             | (calculated) | checksum : modulo 256 sum of all bytes in record except the first byte                               |
 
 #### data record
@@ -22,19 +22,18 @@ Each data record is build like following description:
 
 | Size in bytes | Value        | Meaning                                                                                              |
 |---------------|--------------|------------------------------------------------------------------------------------------------------|
-| 1?            | (calculated)            | word count - # of 16-bit words in record (w/o checksum and this byte itself  , so 8 bytes = 4 words) |
-| 2             | (calculated)            | byte count - # of 8-bit data bytes                                                                   |
-| 4             | ?            | address where following data is to be stored                                                         |
-| n             | ?            | n data bytes                                                                                         |
+| 1             | (calculated) | word count - # of 16-bit words in record (w/o checksum and this byte itself  , so 8 bytes = 4 words) |
+| 2             | (calculated) | byte count - # of 8-bit data bytes                                                                   |
+| 4             | (calculated) | address where following data is to be stored                                                         |
+| n             | (calculated) | n data bytes                                                                                         |
 | 1             | (calculated) | checksum : modulo 256 sum of all bytes in record except the first byte                               |
 
 #### End-of-file record
-
+End of file record has 1 byte size, byte value is zero.
 
 | Size in bytes | Value      | Meaning                                          |
 |---------------|------------|--------------------------------------------------|
-| 1?            | 0 (always) | End-of-file record has word count 0 |
-
+| 1             | 0 (always) | End-of-file record has word count 0 |
 
 Order of bytes in 32-bit addresses:
 
@@ -57,7 +56,7 @@ So start-of-file looks like this:
 
 | Size in bytes | Value        | Meaning                                                                                              |
 |---------------|--------------|------------------------------------------------------------------------------------------------------|
-| 1?            | 4 (always)   | word count - # of 16-bit words in record (w/o checksum and this byte itself  , so 8 bytes = 4 words) |
+| 1             | 4 (always)   | word count - # of 16-bit words in record (w/o checksum and this byte itself  , so 8 bytes = 4 words) |
 | 2             | 8            | data bus width                                                                                       |
 | 2             | 8            | data width base                                                                                      |
 | 4             | ?            | transfer address                                                                                     |

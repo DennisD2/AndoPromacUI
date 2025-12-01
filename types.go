@@ -11,9 +11,6 @@ type AndoSerialConnection struct {
 	device   string
 	baudrate int
 	timeout  time.Duration
-	//dryMode      bool
-	//debug        int
-	//batch        bool
 }
 
 // ConnState State of Connection
@@ -22,8 +19,8 @@ type ConnState int
 const (
 	NormalInput  ConnState = 0
 	CommandInput           = 1
-	ReceiveData            = 3
-	SendData               = 4
+	ReceiveData            = 2
+	SendData               = 3
 )
 
 type TransferFormat int
@@ -48,8 +45,6 @@ type AndoConnection struct {
 	checksum         uint32                // checksum value
 	transferPosition int
 	hp64k            *HP64KInfo
-
-	//subState         SubState
 }
 
 // LineInfo info for a line sent by Programmer Device
