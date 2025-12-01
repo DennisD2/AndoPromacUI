@@ -112,6 +112,14 @@ func handleRecordData(ando *AndoConnection, b uint8) {
 
 		DumpRecordData(ando, ando.hp64k.data)
 
+		newLine := LineInfo{
+			address: ando.hp64k.data.targetAddress,
+		}
+		for i, b := range ando.hp64k.data.bytes {
+			newLine.codes[i] = b
+		}
+		ando.lineInfos = append(ando.lineInfos, newLine)
+
 		ando.transferPosition = 0
 		ando.hp64k.state = HP64K_Data_Header
 	}
