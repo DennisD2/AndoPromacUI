@@ -54,10 +54,10 @@ func handleHP64KABSInput(ando *AndoConnection, num int, cbuf []byte, newLine *Li
 			fmt.Printf("%02x ", b)
 		}
 		if ando.hp64k.state == HP64K_SOF {
-			handleSOFRecord(ando, b)
+			handleSOFRecord(ando, b, errors)
 
 		} else if ando.hp64k.state == HP64K_Data_Header || ando.hp64k.state == HP64K_Data || ando.hp64k.state == HP64K_Checksum {
-			handleRecordData(ando, b, lineNumber)
+			handleRecordData(ando, b, lineNumber, errors)
 		}
 
 	}
@@ -67,7 +67,7 @@ func handleHP64KABSInput(ando *AndoConnection, num int, cbuf []byte, newLine *Li
 }
 
 // handleRecordData handle Data record
-func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int) {
+func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *int) {
 	if ando.hp64k.state == HP64K_Data_Header {
 		if ando.transferPosition == 0 {
 			ando.hp64k.data.wordCount = b
@@ -127,8 +127,11 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int) {
 		checksum := b
 		if checksum != ando.hp64k.data.checksum {
 			fmt.Printf("data.checksum mismatch 0x%02x!=0x%02xd!\n\r", checksum, ando.hp64k.data.checksum)
+			*errors++
 		} else {
-			//fmt.Printf("Data record checksum ok!\n\r")
+			if ando.debug > 2 {
+				fmt.Printf("Data record checksum ok!\n\r")
+			}
 		}
 
 		dumpRecordData(ando, ando.hp64k.data)
@@ -165,7 +168,7 @@ func dumpRecordData(ando *AndoConnection, record *DataRecord) {
 }
 
 // handleSOFRecord handle Start-Of-File record
-func handleSOFRecord(ando *AndoConnection, b uint8) {
+func handleSOFRecord(ando *AndoConnection, b uint8, errors *int) {
 	if ando.transferPosition == 0 {
 		ando.hp64k.sof.wordCount = b
 		ando.hp64k.sof.checksum = 0
@@ -209,8 +212,11 @@ func handleSOFRecord(ando *AndoConnection, b uint8) {
 		checksum := b
 		if checksum != ando.hp64k.sof.checksum {
 			fmt.Printf("sof.checksum mismatch 0x%02x!=0x%02xd!\n\r", checksum, ando.hp64k.sof.checksum)
+			*errors++
 		} else {
-			fmt.Printf("Start-Of-File record checksum ok!\n\r")
+			if ando.debug >= 1 {
+				fmt.Printf("Start-Of-File record checksum ok!\n\r")
+			}
 		}
 
 		dumpSOFRecord(ando, ando.hp64k.sof)
