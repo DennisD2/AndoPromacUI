@@ -134,7 +134,7 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *in
 			}
 		}
 
-		dumpRecordData(ando, ando.hp64k.data)
+		dumpDataRecord(ando, ando.hp64k.data)
 
 		newLine := LineInfo{
 			address: ando.hp64k.data.targetAddress,
@@ -151,8 +151,8 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *in
 	}
 }
 
-// dumpRecordData dump a Data record
-func dumpRecordData(ando *AndoConnection, record *DataRecord) {
+// dumpDataRecord dump a Data record
+func dumpDataRecord(ando *AndoConnection, record *DataRecord) {
 	if ando.debug > 1 {
 		fmt.Printf("data.wordCount=%d\n\r", record.wordCount)
 		fmt.Printf("data.byteCount=%d\n\r", record.byteCount)
