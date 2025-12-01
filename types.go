@@ -32,19 +32,19 @@ const (
 
 // Connection connection to Eprommer
 type AndoConnection struct {
-	continueLoop     int       // true as long as command loop runs
-	state            ConnState // state of app
-	dryMode          bool      // dry mode means do not really invoke EPrommer device
-	debug            int       // debug level
-	batch            bool      // batch mode
-	uploadFile       string    // file to upload to EPrommer device
-	downloadFile     string    // file to download from EPrommer device
-	transferFormat   TransferFormat
-	serial           *AndoSerialConnection // Serial onnection structure used
-	lineInfos        []LineInfo            // internal representation of EPROM data during download
-	checksum         uint32                // checksum value
-	transferPosition int
-	hp64k            *HP64KInfo
+	continueLoop   int       // true as long as command loop runs
+	state          ConnState // state of app
+	dryMode        bool      // dry mode means do not really invoke EPrommer device
+	debug          int       // debug level
+	batch          bool      // batch mode
+	uploadFile     string    // file to upload to EPrommer device
+	downloadFile   string    // file to download from EPrommer device
+	transferFormat TransferFormat
+	serial         *AndoSerialConnection // Serial onnection structure used
+	lineInfos      []LineInfo            // internal representation of EPROM data during download
+	checksum       uint32                // checksum value
+	recordPosition int                   // position in record
+	hp64k          *HP64KInfo            // structure required for HP64000ABS transfer format
 }
 
 // LineInfo info for a line sent by Programmer Device

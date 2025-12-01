@@ -69,7 +69,7 @@ func handleHP64KABSInput(ando *AndoConnection, num int, cbuf []byte, newLine *Li
 // handleRecordData handle Data record
 func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *int) {
 	if ando.hp64k.state == HP64K_Data_Header {
-		if ando.transferPosition == 0 {
+		if ando.recordPosition == 0 {
 			ando.hp64k.data.wordCount = b
 			ando.hp64k.data.checksum = 0
 			ando.hp64k.data.bytes = nil
@@ -79,29 +79,29 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *in
 				fmt.Printf("End-Of-File record received\n\r")
 			}
 		}
-		if ando.transferPosition == 1 {
+		if ando.recordPosition == 1 {
 			ando.hp64k.data.byteCount = uint16(b << 8)
 			ando.hp64k.data.checksum += b
 		}
-		if ando.transferPosition == 2 {
+		if ando.recordPosition == 2 {
 			ando.hp64k.data.byteCount = uint16(b)
 			ando.hp64k.data.checksum += b
 		}
 
 		// "Target address"
-		if ando.transferPosition == 3 {
+		if ando.recordPosition == 3 {
 			ando.hp64k.data.targetAddress = uint32(b) << 8
 			ando.hp64k.data.checksum += b
 		}
-		if ando.transferPosition == 4 {
+		if ando.recordPosition == 4 {
 			ando.hp64k.data.targetAddress += uint32(b)
 			ando.hp64k.data.checksum += b
 		}
-		if ando.transferPosition == 5 {
+		if ando.recordPosition == 5 {
 			ando.hp64k.data.targetAddress += uint32(b) << 24
 			ando.hp64k.data.checksum += b
 		}
-		if ando.transferPosition == 6 {
+		if ando.recordPosition == 6 {
 			ando.hp64k.data.targetAddress += uint32(b) << 16
 			ando.hp64k.data.checksum += b
 
@@ -109,11 +109,11 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *in
 
 			// next state
 			ando.hp64k.state = HP64K_Data
-			ando.transferPosition = 0
+			ando.recordPosition = 0
 		}
 
 		if ando.hp64k.state == HP64K_Data_Header {
-			ando.transferPosition++
+			ando.recordPosition++
 		}
 	} else if ando.hp64k.state == HP64K_Data {
 		ando.hp64k.data.bytes = append(ando.hp64k.data.bytes, b)
@@ -121,7 +121,7 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *in
 		ando.hp64k.data.bytePos++
 		if ando.hp64k.data.bytePos == ando.hp64k.data.byteCount {
 			ando.hp64k.state = HP64K_Checksum
-			ando.transferPosition++
+			ando.recordPosition++
 		}
 	} else if ando.hp64k.state == HP64K_Checksum {
 		checksum := b
@@ -146,7 +146,7 @@ func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *in
 		ando.lineInfos = append(ando.lineInfos, newLine)
 		*lineNumber++
 
-		ando.transferPosition = 0
+		ando.recordPosition = 0
 		ando.hp64k.state = HP64K_Data_Header
 	}
 }
@@ -169,46 +169,46 @@ func dumpRecordData(ando *AndoConnection, record *DataRecord) {
 
 // handleSOFRecord handle Start-Of-File record
 func handleSOFRecord(ando *AndoConnection, b uint8, errors *int) {
-	if ando.transferPosition == 0 {
+	if ando.recordPosition == 0 {
 		ando.hp64k.sof.wordCount = b
 		ando.hp64k.sof.checksum = 0
 	}
-	if ando.transferPosition == 1 {
+	if ando.recordPosition == 1 {
 		ando.hp64k.sof.dataBusWidth = uint16(b) << 8
 		ando.hp64k.sof.checksum += b
 	}
-	if ando.transferPosition == 2 {
+	if ando.recordPosition == 2 {
 		ando.hp64k.sof.dataBusWidth += uint16(b)
 		ando.hp64k.sof.checksum += b
 	}
-	if ando.transferPosition == 3 {
+	if ando.recordPosition == 3 {
 		ando.hp64k.sof.dataWidthBase = uint16(b) << 8
 		ando.hp64k.sof.checksum += b
 	}
-	if ando.transferPosition == 4 {
+	if ando.recordPosition == 4 {
 		ando.hp64k.sof.dataWidthBase += uint16(b)
 		ando.hp64k.sof.checksum += b
 	}
 
 	// "Transfer address"
-	if ando.transferPosition == 5 {
+	if ando.recordPosition == 5 {
 		ando.hp64k.sof.transferAddress = uint32(b) << 8
 		ando.hp64k.sof.checksum += b
 	}
-	if ando.transferPosition == 6 {
+	if ando.recordPosition == 6 {
 		ando.hp64k.sof.transferAddress += uint32(b)
 		ando.hp64k.sof.checksum += b
 	}
-	if ando.transferPosition == 7 {
+	if ando.recordPosition == 7 {
 		ando.hp64k.sof.transferAddress += uint32(b) << 24
 		ando.hp64k.sof.checksum += b
 	}
-	if ando.transferPosition == 8 {
+	if ando.recordPosition == 8 {
 		ando.hp64k.sof.transferAddress += uint32(b) << 16
 		ando.hp64k.sof.checksum += b
 	}
 
-	if ando.transferPosition == 9 {
+	if ando.recordPosition == 9 {
 		checksum := b
 		if checksum != ando.hp64k.sof.checksum {
 			fmt.Printf("sof.checksum mismatch 0x%02x!=0x%02xd!\n\r", checksum, ando.hp64k.sof.checksum)
@@ -223,11 +223,11 @@ func handleSOFRecord(ando *AndoConnection, b uint8, errors *int) {
 
 		// set up vars for next record
 		ando.hp64k.state = HP64K_Data_Header
-		ando.transferPosition = 0
+		ando.recordPosition = 0
 	}
 	if ando.hp64k.state == HP64K_SOF {
 		// move pointer forward
-		ando.transferPosition++
+		ando.recordPosition++
 	}
 
 }
