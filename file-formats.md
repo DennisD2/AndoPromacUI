@@ -1,5 +1,9 @@
 
+### ASCII HEX
+TBD
+
 ### hp64000 abs obj format 
+Binary format.
 
 Format is:
 * start-of-file record
@@ -64,4 +68,8 @@ So start-of-file looks like this:
 
 File format infos were taken from some other eprom programmer manual:
 
+HP64000 ABS OBJ Format:
 ![hp64000-abs-obj-format-from-boardsite4000-manual.png](docs/hp64000-abs-obj-format-from-boardsite4000-manual.png)
+
+Even more info:
+* https://srecord.sourceforge.net/man/man5/srec_hp64k.5.html
