@@ -48,7 +48,7 @@ Order of bytes in 32-bit addresses:
 To be constructed 32 bit value:
  MSB.3rd.2nd.LSB
 
-From Prpmac manual additional infos on the format:
+From Promac manual additional infos on the format:
 - eight address bits (4 bytes)
 - data bus width = data word width = 8
 - understand no end-of-file record (???, manual page 28)

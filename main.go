@@ -57,9 +57,12 @@ func main() {
 		*batchPtr,
 		*uploadPtr,
 		*downloadPtr,
+		HP64000ABS, //HP64000ABS,ASCIIHex
 		&andoSerial,
 		nil,
 		0,
+		0,
+		nil,
 	}
 
 	if !ando.dryMode {
@@ -152,6 +155,15 @@ func ttyReader(ando *AndoConnection) {
 
 // handleTTYInput handle the incoming byte sequences according to app state
 func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
+	if ando.transferFormat == ASCIIHex {
+		handleASCIIHexInput(ando, num, cbuf, newLine, lineNumber, errors)
+	}
+	if ando.transferFormat == HP64000ABS {
+		handleHP64KABSInput(ando, num, cbuf, newLine, lineNumber, errors)
+	}
+}
+
+func handleASCIIHexInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
 	for i := 0; i < num; i++ {
 		if cbuf[i] == '\n' {
 			if ando.state == ReceiveData {
@@ -272,6 +284,15 @@ func localKeyboardReader(ando *AndoConnection) {
 				if cbuf[0] == 'd' {
 					ando.lineInfos = nil
 					ando.checksum = 0
+					if ando.transferFormat == HP64000ABS {
+						var sofRecord = new(StartOfFileRecord)
+						var dataRecord = new(DataRecord)
+						var hp64k = new(HP64KInfo)
+						hp64k.sof = sofRecord
+						hp64k.data = dataRecord
+						hp64k.state = HP64K_SOF
+						ando.hp64k = hp64k
+					}
 					fmt.Println("\n\r")
 					ando.state = ReceiveData
 					bbuf := make([]byte, 8)
