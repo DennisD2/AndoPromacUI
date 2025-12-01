@@ -78,5 +78,8 @@ The software uses package "golang.org/x/term" and was only tested with Linux.
 I do not know if that package exists for other operating systems,
 So software might only run on Linux.
 
+## Some info on transfer file format
+See [file-formats.md](file-formats.md)
+
 ## Further reading
 * [JMC Promac Model 2A Programmer Manual](docs/jmc-promac-2a-ep-programmer-manual.pdf)
