@@ -57,6 +57,11 @@ func handleRecordData(ando *AndoConnection, b uint8) {
 			ando.hp64k.data.wordCount = b
 			ando.hp64k.data.checksum = 0
 			ando.hp64k.data.bytes = nil
+
+			if b == 0x0 {
+				ando.hp64k.state = HP64K_EOF
+				fmt.Printf("End-Of-File record received")
+			}
 		}
 		if ando.transferPosition == 1 {
 			ando.hp64k.data.byteCount = uint16(b << 8)
