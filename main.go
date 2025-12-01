@@ -126,7 +126,7 @@ func ttyReader(ando *AndoConnection) {
 			str := string(cbuf)
 			if strings.HasPrefix(str, "[PASS]") {
 				if ando.state == ReceiveData {
-					log.Printf("Data receive completed. Read %v bytes in %v lines\n\r", (lineNumber-1)*16, lineNumber-1)
+					log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
 					log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
 					if errors > 0 {
 						fmt.Printf("There were %v errors\n\r", errors)
@@ -201,13 +201,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.lineInfos = nil
 					ando.checksum = 0
 					if ando.transferFormat == HP64000ABS {
-						var sofRecord = new(StartOfFileRecord)
-						var dataRecord = new(DataRecord)
-						var hp64k = new(HP64KInfo)
-						hp64k.sof = sofRecord
-						hp64k.data = dataRecord
-						hp64k.state = HP64K_SOF
-						ando.hp64k = hp64k
+						initHp64KFormat(ando)
 					}
 					fmt.Println("\n\r")
 					ando.state = ReceiveData
@@ -233,7 +227,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					// If ':' is selected, check next char for command to execute
 					// We switch state to CommandInput for that
 					ando.state = CommandInput
-					fmt.Print(" [:qdw] >")
+					fmt.Print(" [:qdwu] >")
 					continue
 				}
 			}
