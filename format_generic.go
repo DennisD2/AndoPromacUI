@@ -1,20 +1,27 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type GenericState int
 
 const (
-	GENERIC_START GenericState = 0
-	GENERIC_DATA               = 1
-	GENERIC_END                = 2
+	GENERIC_START  GenericState = 0
+	GENERIC_DATA                = 1
+	GENERIC_END_CR              = 2
+	GENERIC_END_LF              = 3
+	GENERIC_END                 = 4
 )
 
 type GenericData struct {
-	cr_count   uint32
-	lf_count   uint32
-	zero_count uint32
-	state      GenericState
+	cr_count        uint32
+	lf_count        uint32
+	zero_count      uint32
+	lastCharWasZero bool
+	state           GenericState
+	byteCount       uint32
 }
 
 var genericState *GenericData = nil
@@ -25,6 +32,8 @@ func initGenericFormat() {
 	genericState.cr_count = 0
 	genericState.lf_count = 0
 	genericState.state = GENERIC_START
+	genericState.lastCharWasZero = false
+	genericState.byteCount = 0
 }
 
 func handleGenericInput(ando *AndoConnection, num int, cbuf []byte, line *LineInfo, number *int, errors *int) {
@@ -55,7 +64,45 @@ func handleGenericInput(ando *AndoConnection, num int, cbuf []byte, line *LineIn
 				fmt.Printf(" zeros=%v other=%v\n\r", zero_count, other_count)
 			}*/
 		}
+		// wait for 100 x '0x0'
 		if genericState.state == GENERIC_DATA {
+			genericState.byteCount++
+			if b == 0x0 {
+				if genericState.lastCharWasZero {
+					genericState.zero_count++
+				} else {
+					genericState.lastCharWasZero = true
+					genericState.zero_count = 1
+				}
+			} else {
+				genericState.lastCharWasZero = false
+			}
+			if genericState.zero_count == 100 {
+				genericState.state = GENERIC_END_CR
+				fmt.Printf("100 zeros received\n\r")
+				continue
+			}
+		}
+		// wait for 0xd,0xa
+		if genericState.state == GENERIC_END_CR {
+			if b == 0xd {
+				genericState.state = GENERIC_END_LF
+				fmt.Printf("0xd received\n\r")
+				continue
+			} else {
+				genericState.state = GENERIC_DATA
+			}
+		}
+		// wait for 0xd,0xa
+		if genericState.state == GENERIC_END_LF {
+			if b == 0xa {
+				genericState.state = GENERIC_END
+				log.Printf("0xa received\n\r")
+				fmt.Printf("End Block received\n\r")
+				fmt.Printf("Bytes in data: %v\n\r", genericState.byteCount-100-2)
+			} else {
+				genericState.state = GENERIC_DATA
+			}
 
 		}
 		/*if cbuf[i] == '\n' {

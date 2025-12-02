@@ -230,13 +230,13 @@ func localKeyboardReader(ando *AndoConnection) {
 				if cbuf[0] == 'f' {
 					if ando.transferFormat == F_ASCIIHex {
 						ando.transferFormat = F_HP64000ABS
-						fmt.Println(" File format is now: ASCII-Hex\n\r")
+						fmt.Println(" File format is now: HP64000ABS\n\r")
 					} else if ando.transferFormat == F_HP64000ABS {
 						ando.transferFormat = F_GENERIC
 						fmt.Println(" File format is now: Generic\n\r")
 					} else if ando.transferFormat == F_GENERIC {
 						ando.transferFormat = F_ASCIIHex
-						fmt.Println(" File format is now: F_HP64000ABS\n\r")
+						fmt.Println(" File format is now: ASCII-Hex\n\r")
 					}
 					ando.state = NormalInput
 				}

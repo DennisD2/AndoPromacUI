@@ -76,4 +76,4 @@ HP64000 ABS OBJ Format:
 Even more info:
 * https://srecord.sourceforge.net/man/man5/srec_hp64k.5.html
 
-## Binary
+## DG-Binary
