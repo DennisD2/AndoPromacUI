@@ -273,10 +273,15 @@ func helpText(ando *AndoConnection) {
 	fmt.Print(" P C <CR>	- DEVICE-BLANK\n\r")
 	fmt.Print(" P D <CR>	- DEVICE-PROGRAM\n\r")
 	fmt.Print(" P E <CR>	- DEVICE-VERIFY\n\r")
+
 	fmt.Print(" U 9 <CR>	- Quit REMOTE CONTROL\n\r")
 	fmt.Print(" U 6 <CR>	- Send data to EPrommer\n\r")
 	fmt.Print(" U 7 <CR>	- Receive Data from EPrommer\n\r")
 	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
+
+	fmt.Print(" R <SPACE> <CR>	- outputs selected ROM-TYPE\n\r")
+	fmt.Print(" U 5 <SPACE> <CR> - outputs selected Data Format\n\r")
+
 	fmt.Print("Compound Commands:\n\r")
 	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
 	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
