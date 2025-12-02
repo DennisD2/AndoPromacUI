@@ -56,7 +56,7 @@ func main() {
 		*batchPtr,
 		*uploadPtr,
 		*downloadPtr,
-		ASCIIHex, //HP64000ABS,ASCIIHex
+		F_GENERIC, //F_HP64000ABS,F_ASCIIHex, F_GENERIC
 		&andoSerial,
 		nil,
 		0,
@@ -158,11 +158,14 @@ func ttyReader(ando *AndoConnection) {
 
 // handleTTYInput handle the incoming byte sequences according to app state
 func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
-	if ando.transferFormat == ASCIIHex {
+	if ando.transferFormat == F_ASCIIHex {
 		handleASCIIHexInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
-	if ando.transferFormat == HP64000ABS {
+	if ando.transferFormat == F_HP64000ABS {
 		handleHP64KABSInput(ando, num, cbuf, newLine, lineNumber, errors)
+	}
+	if ando.transferFormat == F_GENERIC {
+		handleGenericInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
 }
 
@@ -205,7 +208,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.startTime = time.Now()
 					ando.lineInfos = nil
 					ando.checksum = 0
-					if ando.transferFormat == HP64000ABS {
+					if ando.transferFormat == F_HP64000ABS {
 						initHp64KFormat(ando)
 					}
 					fmt.Println("\n\r")
@@ -225,12 +228,15 @@ func localKeyboardReader(ando *AndoConnection) {
 					uploadFile(ando)
 				}
 				if cbuf[0] == 'f' {
-					if ando.transferFormat == HP64000ABS {
-						ando.transferFormat = ASCIIHex
+					if ando.transferFormat == F_ASCIIHex {
+						ando.transferFormat = F_HP64000ABS
 						fmt.Println(" File format is now: ASCII-Hex\n\r")
-					} else if ando.transferFormat == ASCIIHex {
-						ando.transferFormat = HP64000ABS
-						fmt.Println(" File format is now: HP64000ABS\n\r")
+					} else if ando.transferFormat == F_HP64000ABS {
+						ando.transferFormat = F_GENERIC
+						fmt.Println(" File format is now: Generic\n\r")
+					} else if ando.transferFormat == F_GENERIC {
+						ando.transferFormat = F_ASCIIHex
+						fmt.Println(" File format is now: F_HP64000ABS\n\r")
 					}
 					ando.state = NormalInput
 				}
@@ -276,7 +282,7 @@ func helpText(ando *AndoConnection) {
 	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
 	fmt.Printf(" : w		- Write EPROM data to file %v-<checksum>.bin\n\r", ando.downloadFile)
 	fmt.Printf(" : u		- Upload EPROM data from file %v to EPrommer\n\r", ando.uploadFile)
-	fmt.Printf(" : f		- Change file transfer format (ASCII-Hex, HP64000ABS)\n\r")
+	fmt.Printf(" : f		- Change file transfer format (ASCII-Hex, HP64000ABS, GENERIC)\n\r")
 	fmt.Print("\n\r")
 }
 
