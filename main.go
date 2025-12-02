@@ -136,6 +136,9 @@ func ttyReader(ando *AndoConnection) {
 						fmt.Printf("There were %v errors\n\r", errors)
 						errors = 0
 					}
+					if ando.transferFormat == F_GENERIC {
+						parseGeneric(ando)
+					}
 					lineNumber = 1
 				}
 				if ando.state == SendData {
@@ -210,6 +213,9 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.checksum = 0
 					if ando.transferFormat == F_HP64000ABS {
 						initHp64KFormat(ando)
+					}
+					if ando.transferFormat == F_GENERIC {
+						initGenericFormat(ando)
 					}
 					fmt.Println("\n\r")
 					ando.state = ReceiveData
@@ -287,7 +293,18 @@ func helpText(ando *AndoConnection) {
 	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
 	fmt.Printf(" : w		- Write EPROM data to file %v-<checksum>.bin\n\r", ando.downloadFile)
 	fmt.Printf(" : u		- Upload EPROM data from file %v to EPrommer\n\r", ando.uploadFile)
-	fmt.Printf(" : f		- Change file transfer format (ASCII-Hex, HP64000ABS, GENERIC)\n\r")
+	fmt.Printf(" : f		- Change file transfer format (ASCII-Hex, HP64000ABS, GENERIC). Current is: ")
+	switch ando.transferFormat {
+	case F_GENERIC:
+		fmt.Println(" Generic\n\r")
+		break
+	case F_HP64000ABS:
+		fmt.Println("HP64000ABS\n\r")
+		break
+	case F_ASCIIHex:
+		fmt.Println("ASCII-Hex\n\r")
+		break
+	}
 	fmt.Print("\n\r")
 }
 
