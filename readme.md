@@ -51,8 +51,9 @@ Compound Commands:
  : d            - Download EPROM data (like U7)
  : w            - Write EPROM data to file out-<checksum>.bin
  : u            - Upload EPROM data from file in.bin to EPrommer
+ : f            - Change file transfer format (ASCII-Hex, HP64000ABS)
 
-Command > 
+Command >  [:qdwuf] > 
 ```
 All possible commands can be entered on command line, for a list of commands check the 
 programmers manual. A few of the commands have been implemented as "Compound Commands"
@@ -79,7 +80,15 @@ I do not know if that package exists for other operating systems,
 So software might only run on Linux.
 
 ## Some info on transfer file format
-See [file-formats.md](file-formats.md)
+Ando EPrommer supports many formats for up- and dowwnloading.
+
+This software only supports:
+* ASCII-Hex for up- and download
+* HP64000ABS-OBJ for downloading (this a binary format)
+
+Download time for 4K EPROM is ~8.5 seconds with ASCII-Hex and ~3.5 seconds with HP64000ABS.
+
+Some more details on file formats see [file-formats.md](file-formats.md)
 
 ## Further reading
 * [JMC Promac Model 2A Programmer Manual](docs/jmc-promac-2a-ep-programmer-manual.pdf)

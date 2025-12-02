@@ -66,6 +66,8 @@ So start-of-file looks like this:
 | 4             | ?            | transfer address                                                                                     |
 | 1             | (calculated) | checksum : modulo 256 sum of all bytes in record except the first byte                               |
 
+I found that Ando Eprommer sends always records with 16 data bytes inside.
+
 File format infos were taken from some other eprom programmer manual:
 
 HP64000 ABS OBJ Format:
