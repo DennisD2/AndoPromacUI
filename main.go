@@ -56,12 +56,14 @@ func main() {
 		*batchPtr,
 		*uploadPtr,
 		*downloadPtr,
-		HP64000ABS, //HP64000ABS,ASCIIHex
+		ASCIIHex, //HP64000ABS,ASCIIHex
 		&andoSerial,
 		nil,
 		0,
 		0,
 		nil,
+		time.Now(),
+		time.Now(),
 	}
 
 	if !ando.dryMode {
@@ -126,8 +128,10 @@ func ttyReader(ando *AndoConnection) {
 			str := string(cbuf)
 			if strings.HasPrefix(str, "[PASS]") {
 				if ando.state == ReceiveData {
+					ando.stopTime = time.Now()
 					log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
 					log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
+					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
 						fmt.Printf("There were %v errors\n\r", errors)
 						errors = 0
@@ -198,6 +202,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.state = NormalInput
 				}
 				if cbuf[0] == 'd' {
+					ando.startTime = time.Now()
 					ando.lineInfos = nil
 					ando.checksum = 0
 					if ando.transferFormat == HP64000ABS {
@@ -219,6 +224,16 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.state = NormalInput
 					uploadFile(ando)
 				}
+				if cbuf[0] == 'f' {
+					if ando.transferFormat == HP64000ABS {
+						ando.transferFormat = ASCIIHex
+						fmt.Println(" File format is now: ASCII-Hex\n\r")
+					} else if ando.transferFormat == ASCIIHex {
+						ando.transferFormat = HP64000ABS
+						fmt.Println(" File format is now: HP64000ABS\n\r")
+					}
+					ando.state = NormalInput
+				}
 				continue
 			}
 
@@ -227,7 +242,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					// If ':' is selected, check next char for command to execute
 					// We switch state to CommandInput for that
 					ando.state = CommandInput
-					fmt.Print(" [:qdwu] >")
+					fmt.Print(" [:qdwuf] >")
 					continue
 				}
 			}
@@ -261,6 +276,7 @@ func helpText(ando *AndoConnection) {
 	fmt.Print(" : d		- Download EPROM data (like U7)\n\r")
 	fmt.Printf(" : w		- Write EPROM data to file %v-<checksum>.bin\n\r", ando.downloadFile)
 	fmt.Printf(" : u		- Upload EPROM data from file %v to EPrommer\n\r", ando.uploadFile)
+	fmt.Printf(" : f		- Change file transfer format (ASCII-Hex, HP64000ABS)\n\r")
 	fmt.Print("\n\r")
 }
 

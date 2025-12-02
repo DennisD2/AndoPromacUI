@@ -157,7 +157,7 @@ func dumpDataRecord(ando *AndoConnection, record *DataRecord) {
 		fmt.Printf("data.wordCount=%d\n\r", record.wordCount)
 		fmt.Printf("data.byteCount=%d\n\r", record.byteCount)
 	}
-	fmt.Printf("0x%04x: ", record.targetAddress)
+	fmt.Printf("0x%08x: ", record.targetAddress)
 	for _, b := range record.bytes {
 		fmt.Printf("%02x ", b)
 	}

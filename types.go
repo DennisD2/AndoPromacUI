@@ -45,6 +45,8 @@ type AndoConnection struct {
 	checksum       uint32                // checksum value
 	recordPosition int                   // position in record
 	hp64k          *HP64KInfo            // structure required for HP64000ABS transfer format
+	startTime      time.Time
+	stopTime       time.Time
 }
 
 // LineInfo info for a line sent by Programmer Device
