@@ -41,8 +41,7 @@ func parseHp64KFormat(ando *AndoConnection, lineNumber *int, errors *int) {
 
 	i := 0
 	valid := readSOFRecord(ando, &i, errors)
-	//ando.debug = 2
-	dumpSOFRecord(ando, ando.hp64k.sof)
+	//dumpSOFRecord(ando, ando.hp64k.sof)
 	if !valid {
 		fmt.Printf("Error reading SOF record\n\r")
 		return
