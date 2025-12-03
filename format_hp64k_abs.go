@@ -46,6 +46,10 @@ func initHp64KFormat(ando *AndoConnection) {
 	ando.hp64k = hp64k
 }
 
+func parseHp64KFormat(ando *AndoConnection) {
+
+}
+
 // handleHP64KABSInput handles HP64000 format
 func handleHP64KABSInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
 	for i := 0; i < num; i++ {
