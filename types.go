@@ -26,8 +26,9 @@ const (
 type TransferFormat int
 
 const (
-	ASCIIHex   TransferFormat = 0
-	HP64000ABS                = 1
+	F_ASCIIHex   TransferFormat = 0
+	F_HP64000ABS                = 1
+	F_GENERIC                   = 2
 )
 
 // Connection connection to Eprommer
@@ -44,7 +45,7 @@ type AndoConnection struct {
 	lineInfos      []LineInfo            // internal representation of EPROM data during download
 	checksum       uint32                // checksum value
 	recordPosition int                   // position in record
-	hp64k          *HP64KInfo            // structure required for HP64000ABS transfer format
+	hp64k          *HP64KInfo            // structure required for F_HP64000ABS transfer format
 	startTime      time.Time
 	stopTime       time.Time
 }
