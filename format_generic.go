@@ -37,15 +37,15 @@ func parseGeneric(ando *AndoConnection) {
 	if !valid {
 		fmt.Printf("Not a raw footer!\n\r")
 	}
-	fmt.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart+1, dataEnd)
+	fmt.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart, dataEnd)
 
 	sb := new(strings.Builder)
 	sb.WriteString("\n\r")
 	address := 0
-	i := dataStart + 1
+	i := dataStart
 	bytesInLine := 0
 	for i <= dataEnd {
-		if (i-dataStart-1)%16 == 0 {
+		if (i-dataStart)%16 == 0 {
 			str := fmt.Sprintf("%08x ", address)
 			sb.WriteString(str)
 			address += 16
@@ -80,7 +80,7 @@ func isRawHeader(data []byte) (bool, int) {
 			return false, 0
 		}
 	}
-	return true, i
+	return true, i + 1
 }
 
 func isRawFooter(data []byte) (bool, int) {
