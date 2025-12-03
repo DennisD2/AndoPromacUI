@@ -46,12 +46,15 @@ Commands:
  U 6 <CR>       - Send data to EPrommer
  U 7 <CR>       - Receive Data from EPrommer
  U 8 <CR>       - VERIFY
+ R <SPACE> <CR> - outputs selected ROM-TYPE
+ U 5 <SPACE> <CR> - outputs currently selected Data Format
+ U 5 <NUMBER> <CR> - Selected Data Format (Examples: 5=ASCII-Hex, A=HP64000ABS)
 Compound Commands:
  : q            - Quit Ando/Promac EPROM Programmer Communication UI
  : d            - Download EPROM data (like U7)
  : w            - Write EPROM data to file out-<checksum>.bin
  : u            - Upload EPROM data from file in.bin to EPrommer
- : f            - Change file transfer format (ASCII-Hex, HP64000ABS)
+ : f            - Change file transfer format (ASCII-Hex, HP64000ABS, GENERIC). Current is: HP64000ABS
 
 Command >  [:qdwuf] > 
 ```
@@ -80,6 +83,7 @@ Ando EPrommer supports many formats for up- and downloading.
 This software only supports:
 * ASCII-Hex for up- and download
 * HP64000ABS-OBJ for downloading (this a binary format)
+* (GENERIC for debugging transfer data)
 
 Download time for 4K EPROM is ~8.5 seconds with ASCII-Hex and ~3.5 seconds with HP64000ABS.
 
