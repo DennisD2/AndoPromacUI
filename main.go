@@ -56,7 +56,7 @@ func main() {
 		*batchPtr,
 		*uploadPtr,
 		*downloadPtr,
-		F_HP64000ABS, //F_HP64000ABS,F_ASCIIHex, F_GENERIC
+		F_ASCIIHex, //F_HP64000ABS,F_ASCIIHex, F_GENERIC
 		&andoSerial,
 		nil,
 		0,
@@ -128,6 +128,7 @@ func ttyReader(ando *AndoConnection) {
 			str := string(cbuf)
 			if strings.HasPrefix(str, "[PASS]") {
 				if ando.state == ReceiveData {
+					// End of download data
 					ando.stopTime = time.Now()
 					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
@@ -141,11 +142,15 @@ func ttyReader(ando *AndoConnection) {
 						initHp64KFormat(ando)
 						parseHp64KFormat(ando, &lineNumber, &errors)
 					}
+					if ando.transferFormat == F_ASCIIHex {
+						parseASCIIHexFormat(ando, &lineNumber, &errors)
+					}
 					log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
 					log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
 					lineNumber = 1
 				}
 				if ando.state == SendData {
+					// Device signals that upload was processed complete and without errors
 					log.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
 				}
 				if ando.state == ReceiveData || ando.state == SendData {
@@ -157,19 +162,15 @@ func ttyReader(ando *AndoConnection) {
 					ando.serial.tty.Write(bbuf)
 				}
 			} else {
-				handleTTYInput(ando, num, cbuf, &newLine, &lineNumber, &errors)
+				if ando.state == ReceiveData {
+					// incoming data during download
+					handleGenericInput(ando, num, cbuf, &newLine, &lineNumber, &errors)
+				} else {
+					// human readable output, we just print it out
+					fmt.Printf("%s", cbuf)
+				}
 			}
 		}
-	}
-}
-
-// handleTTYInput handle the incoming byte sequences according to app state
-func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
-	if ando.transferFormat == F_ASCIIHex {
-		handleASCIIHexInput(ando, num, cbuf, newLine, lineNumber, errors)
-	}
-	if ando.transferFormat == F_GENERIC || ando.transferFormat == F_HP64000ABS {
-		handleGenericInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
 }
 
@@ -284,7 +285,7 @@ func helpText(ando *AndoConnection) {
 	fmt.Print(" U 7 <CR>	- Receive Data from EPrommer\n\r")
 	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
 
-	fmt.Print(" R <SPACE> <CR>	- outputs selected ROM-TYPE\n\r")
+	fmt.Print(" R <SPACE>	- outputs selected ROM-TYPE\n\r")
 	fmt.Print(" U 5 <SPACE> <CR> - outputs currently selected Data Format\n\r")
 	fmt.Print(" U 5 <NUMBER> <CR> - Selected Data Format (Examples: 5=ASCII-Hex, A=HP64000ABS)\n\r")
 

@@ -9,88 +9,91 @@ import (
 	"time"
 )
 
-// handleASCIIHexInput handles input (also download) coming in from Eprommer
-func handleASCIIHexInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
-	for i := 0; i < num; i++ {
-		if cbuf[i] == '\n' {
-			if ando.state == ReceiveData {
-				newLine.lineNumber = *lineNumber
-				valid := extractData(newLine, errors, &ando.checksum)
-				if valid {
-					ando.lineInfos = append(ando.lineInfos, *newLine)
-					dumpLine(*newLine)
-					*lineNumber++
-				}
-				newLine.raw = ""
+// parseASCIIHexFormat parses ASCII Hex transfer format data
+func parseASCIIHexFormat(ando *AndoConnection, lineNumber *int, errors *int) {
+	fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
+
+	valid, dataStart := isRawHeaderASCIIHex(genericState.rawData)
+	if !valid {
+		fmt.Printf("Not a raw header!\n\r")
+		*errors++
+	}
+	valid, dataEnd := isRawFooterASCIIHex(genericState.rawData)
+	if !valid {
+		fmt.Printf("Not a raw footer!\n\r")
+		*errors++
+	}
+	fmt.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart, dataEnd)
+
+	var lineBytes []byte
+	i := dataStart
+	for i <= dataEnd {
+		b := genericState.rawData[i]
+		if b != 0xa && b != 0xd {
+			lineBytes = append(lineBytes, b)
+		}
+		i++
+		if b == 0xa {
+			// We have a complete line, with address and all 16 data bytes
+			newLine := new(LineInfo)
+			newLine.lineNumber = *lineNumber
+			valid = parseLine(lineBytes, *lineNumber, newLine, errors, &ando.checksum)
+			if valid {
+				ando.lineInfos = append(ando.lineInfos, *newLine)
+				dumpLine(*newLine)
+				*lineNumber++
 			} else {
-				fmt.Printf("\n\r")
+				fmt.Printf("Line read fail\n\r")
 			}
-		} else {
-			if ando.state == ReceiveData {
-				newLine.raw = newLine.raw + string(cbuf[i])
-			} else {
-				fmt.Printf("%c", cbuf[i])
-			}
+			lineBytes = lineBytes[:0]
 		}
 	}
 }
 
-// dumpLine pretty print a line received with address and hex codes
-func dumpLine(line LineInfo) {
-	/*if line.address > 100 && line.address < 0x3f00 {
-		return
-	}*/
-	fmt.Printf("%06d %08x", line.lineNumber, line.address)
-	//fmt.Printf("%v\n\r", line.raw)
-	for _, info := range line.codes {
-		fmt.Printf(" %02x", info)
+// parseLine extracts all data from a line downloaded (i.e. address and byte values)
+func parseLine(bytes []byte, lineNumber int, lineInfo *LineInfo, errors *int, checksum *uint32) bool {
+	var line string = string(bytes)
+	if strings.HasPrefix(line, "#") {
+		index := strings.Index(line, "#")
+		line = line[index+1:]
+	} else {
+		return false
 	}
-	fmt.Printf("\n\r")
-}
 
-// extractData extracts a string representing a line from Programmer device into address and hex values
-func extractData(l *LineInfo, errors *int, checksum *uint32) bool {
-	if strings.Contains(l.raw, "[#") {
-		log.Printf("Start line\n\r")
-		index := strings.Index(l.raw, "[#")
-		l.raw = l.raw[index+1:]
+	firstCommaPos := strings.Index(line, ",")
+	if firstCommaPos == -1 {
+		log.Printf("Line '%v' contains no ',' character. Line ignored", line)
+		*errors++
+		return false
 	}
-	if strings.HasPrefix(l.raw, "#") {
-		firstCommaPos := strings.Index(l.raw, ",")
-		if firstCommaPos == -1 {
-			log.Printf("Line %v contains no ',' character. Line ignored", l.lineNumber)
-			*errors++
-			return false
-		}
-		addressPart := l.raw[1:firstCommaPos]
-		value, err := strconv.ParseUint(addressPart, 16, 32)
+	addressPart := line[1:firstCommaPos]
+	value, err := strconv.ParseUint(addressPart, 16, 32)
+	if err != nil {
+		log.Printf("Error converting address %v Line '%v'", addressPart, line)
+		*errors++
+		return false
+	}
+	lineInfo.address = uint32(value)
+
+	valuesPart := line[firstCommaPos+1:]
+	codes := strings.Split(valuesPart, ",")
+	if len(codes) != 17 {
+		log.Printf("Line contains %v codes (expected 17) at address %v Line %v", len(lineInfo.codes), lineInfo.address, lineInfo.lineNumber)
+		*errors++
+	}
+	for i := 0; i < 16; i++ {
+		value, err := strconv.ParseUint(codes[i], 16, 8)
 		if err != nil {
-			log.Printf("Error converting address %v Line %v", addressPart, l.lineNumber)
+			log.Printf("Error converting value %v, index %v, in Line %v", codes[i], i, lineInfo.lineNumber)
 			*errors++
 			return false
 		}
-		l.address = uint32(value)
-
-		valuesPart := l.raw[firstCommaPos+1:]
-		codes := strings.Split(valuesPart, ",")
-		if len(codes) != 17 {
-			log.Printf("Line contains %v codes (expected 17) at address %v Line %v", len(l.codes), l.address, l.lineNumber)
-			*errors++
-		}
-		for i := 0; i < 16; i++ {
-			value, err := strconv.ParseUint(codes[i], 16, 8)
-			if err != nil {
-				log.Printf("Error converting value %v, index %v, in Line %v", codes[i], i, l.lineNumber)
-				*errors++
-				return false
-			}
-			val := uint8(value)
-			l.codes[i] = val
-			*checksum += uint32(val)
-		}
-		return true
+		val := uint8(value)
+		lineInfo.codes[i] = val
+		*checksum += uint32(val)
 	}
-	return false
+
+	return true
 }
 
 // uploadFile uploads local file to EPrommer's RAM buffer
@@ -156,4 +159,52 @@ func uploadFile(ando *AndoConnection) {
 	// or send it via "Ando/Promac EPROM Programmer Communication UI" by using the '@' key
 	// So we go to new state and wait there for incoming "[PASS]" message
 	ando.state = SendData
+}
+
+// 53 and 99 have been analyzed from download data. The manual says always 100x zeroes (page 28)
+const NUM_HEADER_ZEROES = 52
+const NUM_FOOTER_ZEROES = 99
+
+// isRawHeaderASCIIHex returns true if this is a correct ASCII Hex transfer data header
+func isRawHeaderASCIIHex(data []byte) (bool, int) {
+	if data[0] != 0xd || data[1] != 0xa {
+		return false, 0
+	}
+	if data[2] != 0xd || data[3] != 0xa {
+		return false, 0
+	}
+	if data[4] != 0xd || data[5] != 0xa {
+		return false, 0
+	}
+	var i = 6
+	for ; i < NUM_HEADER_ZEROES+6; i++ {
+		if data[i] != 0x0 {
+			return false, 0
+		}
+	}
+	return true, i + 1
+}
+
+// isRawFooterASCIIHex returns true if this is a correct ASCII Hex transfer data header
+func isRawFooterASCIIHex(data []byte) (bool, int) {
+	pos := len(data)
+	if data[pos-2] != 0xd || data[pos-1] != 0xa {
+		return false, 0
+	}
+	pos = pos - 3
+	for i := pos; i > pos-NUM_FOOTER_ZEROES; i-- {
+		if data[i] != 0x0 {
+			return false, 0
+		}
+	}
+	return true, pos - NUM_FOOTER_ZEROES
+}
+
+// dumpLine pretty print a line received with address and hex codes
+func dumpLine(line LineInfo) {
+	fmt.Printf("%06d %08x", line.lineNumber, line.address)
+	for _, info := range line.codes {
+		fmt.Printf(" %02x", info)
+	}
+	fmt.Printf("\n\r")
 }
