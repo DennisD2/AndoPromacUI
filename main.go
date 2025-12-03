@@ -139,6 +139,10 @@ func ttyReader(ando *AndoConnection) {
 					if ando.transferFormat == F_GENERIC {
 						parseGeneric(ando)
 					}
+					if ando.transferFormat == F_HP64000ABS {
+						initHp64KFormat(ando)
+						parseHp64KFormat(ando)
+					}
 					lineNumber = 1
 				}
 				if ando.state == SendData {
@@ -164,9 +168,9 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInf
 	if ando.transferFormat == F_ASCIIHex {
 		handleASCIIHexInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
-	if ando.transferFormat == F_HP64000ABS {
+	/*if ando.transferFormat == F_HP64000ABS {
 		handleHP64KABSInput(ando, num, cbuf, newLine, lineNumber, errors)
-	}
+	}*/
 	if ando.transferFormat == F_GENERIC {
 		handleGenericInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
@@ -211,12 +215,8 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.startTime = time.Now()
 					ando.lineInfos = nil
 					ando.checksum = 0
-					if ando.transferFormat == F_HP64000ABS {
-						initHp64KFormat(ando)
-					}
-					if ando.transferFormat == F_GENERIC {
-						initGenericFormat(ando)
-					}
+					initGenericFormat(ando)
+
 					fmt.Println("\n\r")
 					ando.state = ReceiveData
 					bbuf := make([]byte, 8)
@@ -236,12 +236,14 @@ func localKeyboardReader(ando *AndoConnection) {
 				if cbuf[0] == 'f' {
 					if ando.transferFormat == F_ASCIIHex {
 						ando.transferFormat = F_HP64000ABS
+						setTransferFormat(ando, "HP64000ABS")
 						fmt.Println(" File format is now: HP64000ABS\n\r")
 					} else if ando.transferFormat == F_HP64000ABS {
 						ando.transferFormat = F_GENERIC
 						fmt.Println(" File format is now: Generic\n\r")
 					} else if ando.transferFormat == F_GENERIC {
 						ando.transferFormat = F_ASCIIHex
+						setTransferFormat(ando, "ASCII Hex")
 						fmt.Println(" File format is now: ASCII-Hex\n\r")
 					}
 					ando.state = NormalInput
