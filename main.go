@@ -166,7 +166,7 @@ func ttyReader(ando *AndoConnection) {
 					// incoming data during download
 					handleGenericInput(ando, num, cbuf, &newLine, &lineNumber, &errors)
 				} else {
-					// human readable output, we just print it out
+					// human-readable output, we just print it out
 					fmt.Printf("%s", cbuf)
 				}
 			}
@@ -287,7 +287,7 @@ func helpText(ando *AndoConnection) {
 
 	fmt.Print(" R <SPACE>	- outputs selected ROM-TYPE\n\r")
 	fmt.Print(" U 5 <SPACE> <CR> - outputs currently selected Data Format\n\r")
-	fmt.Print(" U 5 <NUMBER> <CR> - Selected Data Format (Examples: 5=ASCII-Hex, A=HP64000ABS)\n\r")
+	fmt.Print(" U 5 <HEXDIGIT> <CR> - Selected Data Format (Examples: 5=ASCII-Hex, A=HP64000ABS)\n\r")
 
 	fmt.Print("Compound Commands:\n\r")
 	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
