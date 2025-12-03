@@ -50,7 +50,6 @@ func parseHp64KFormat(ando *AndoConnection, lineNumber *int, errors *int) {
 
 	for i < len(genericState.rawData) {
 		valid := readRecord(ando, &i, errors)
-		dumpDataRecord(ando, ando.hp64k.data)
 		if !valid {
 			if ando.hp64k.data.wordCount == 0 && *errors == 0 {
 				fmt.Printf("Reading Data complete\n\r")
@@ -61,6 +60,7 @@ func parseHp64KFormat(ando *AndoConnection, lineNumber *int, errors *int) {
 			}
 			return
 		} else {
+			dumpDataRecord(ando, ando.hp64k.data)
 			newLine := LineInfo{
 				address: ando.hp64k.data.targetAddress,
 			}
