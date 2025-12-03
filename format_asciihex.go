@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -96,17 +95,14 @@ func parseLine(bytes []byte, lineNumber int, lineInfo *LineInfo, errors *int, ch
 	return true
 }
 
-// uploadFile uploads local file to EPrommer's RAM buffer
-func uploadFile(ando *AndoConnection) {
+// uploadFileAsASCIIHex uploads local file to EPrommer's RAM buffer, transfer format being used is ASCII-Hex
+func uploadFileAsASCIIHex(ando *AndoConnection, errors *int) {
 	sb := new(strings.Builder)
 
-	// Read in file
-	bytes, err := os.ReadFile(ando.uploadFile)
-	if err != nil {
-		log.Printf("Error loading input file %s: %s\n\r", ando.uploadFile, err)
+	bytes, error := loadFile(ando, errors)
+	if error {
 		return
 	}
-	log.Printf("Loaded input file %s, %v bytes\n", ando.uploadFile, len(bytes))
 
 	// Write prefix char
 	sb.WriteString("[")

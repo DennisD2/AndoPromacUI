@@ -132,21 +132,18 @@ func ttyReader(ando *AndoConnection) {
 					ando.stopTime = time.Now()
 					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
-						fmt.Printf("There were %v errors\n\r", errors)
+						fmt.Printf("There were %v errors on data download\n\r", errors)
 						errors = 0
+					} else {
+						parseFormat(ando, errors, lineNumber)
+						if errors > 0 {
+							fmt.Printf("There were %v errors during parsing\n\r", errors)
+							errors = 0
+						} else {
+							log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
+							log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
+						}
 					}
-					if ando.transferFormat == F_GENERIC {
-						parseGeneric(ando, &errors)
-					}
-					if ando.transferFormat == F_HP64000ABS {
-						initHp64KFormat(ando)
-						parseHp64KFormat(ando, &lineNumber, &errors)
-					}
-					if ando.transferFormat == F_ASCIIHex {
-						parseASCIIHexFormat(ando, &lineNumber, &errors)
-					}
-					log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
-					log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
 					lineNumber = 1
 				}
 				if ando.state == SendData {
@@ -171,6 +168,20 @@ func ttyReader(ando *AndoConnection) {
 				}
 			}
 		}
+	}
+}
+
+// parseFormat calls function depending on transfer format
+func parseFormat(ando *AndoConnection, errors int, lineNumber int) {
+	if ando.transferFormat == F_GENERIC {
+		parseGeneric(ando, &errors)
+	}
+	if ando.transferFormat == F_HP64000ABS {
+		initHp64KFormat(ando)
+		parseHp64KFormat(ando, &lineNumber, &errors)
+	}
+	if ando.transferFormat == F_ASCIIHex {
+		parseASCIIHexFormat(ando, &lineNumber, &errors)
 	}
 }
 
@@ -271,6 +282,20 @@ func localKeyboardReader(ando *AndoConnection) {
 	}
 }
 
+// parseFormat calls function depending on transfer format
+func uploadFile(ando *AndoConnection) {
+	errors := 0
+	if ando.transferFormat == F_GENERIC {
+		//TBD
+	}
+	if ando.transferFormat == F_HP64000ABS {
+		//TBD
+	}
+	if ando.transferFormat == F_ASCIIHex {
+		uploadFileAsASCIIHex(ando, &errors)
+	}
+}
+
 // helpText print help text
 func helpText(ando *AndoConnection) {
 	fmt.Print("Commands:\n\r")
@@ -337,4 +362,18 @@ func createFileName(file string, checksum uint32) string {
 	fname := fmt.Sprintf("%v-%06x.bin", file, checksum)
 	log.Printf("Created file name: %v", fname)
 	return fname
+}
+
+// loadFile loads a file from local filesystem
+// Returns a byte array and true on error, false if loading was successful
+func loadFile(ando *AndoConnection, errors *int) ([]byte, bool) {
+	// Read in file
+	bytes, err := os.ReadFile(ando.uploadFile)
+	if err != nil {
+		log.Printf("Error loading input file %s: %s\n\r", ando.uploadFile, err)
+		*errors++
+		return nil, true
+	}
+	log.Printf("Loaded input file %s, %v bytes\n", ando.uploadFile, len(bytes))
+	return bytes, false
 }
