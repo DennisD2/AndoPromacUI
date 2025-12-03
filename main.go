@@ -285,7 +285,8 @@ func helpText(ando *AndoConnection) {
 	fmt.Print(" U 8 <CR>	- VERIFY\n\r")
 
 	fmt.Print(" R <SPACE> <CR>	- outputs selected ROM-TYPE\n\r")
-	fmt.Print(" U 5 <SPACE> <CR> - outputs selected Data Format\n\r")
+	fmt.Print(" U 5 <SPACE> <CR> - outputs currently selected Data Format\n\r")
+	fmt.Print(" U 5 <NUMBER> <CR> - Selected Data Format (Examples: 5=ASCII-Hex, A=HP64000ABS)\n\r")
 
 	fmt.Print("Compound Commands:\n\r")
 	fmt.Print(" : q		- Quit Ando/Promac EPROM Programmer Communication UI\n\r")
