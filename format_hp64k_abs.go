@@ -135,8 +135,8 @@ func readSOFRecord(ando *AndoConnection, i *int, errors *int) bool {
 	return true
 }
 
-// readRecord reads a record. i must point to byte 0 of this record.
-// Returns true as long as there are a) no errors and b) End-Of-File record was not read.
+// readRecord reads a record. value i must point to byte 0 of this record.
+// Returns true as long as there are no errors and End-Of-File record was not read.
 func readRecord(ando *AndoConnection, i *int, errors *int) bool {
 	var b byte
 
@@ -176,7 +176,7 @@ func readRecord(ando *AndoConnection, i *int, errors *int) bool {
 }
 
 // readRecordHeader reads header of a record. Returns tue for a common data record and false for the End-Of-File record.
-// cursor i must point on calling to first byte of header. cursor will point to first byte of next record on exit.
+// Cursor value i must point on calling to first byte of header. cursor will point to first byte of next record on exit.
 func readRecordHeader(ando *AndoConnection, i *int) bool {
 	// wordCount
 	b := genericState.rawData[*i]
@@ -188,7 +188,7 @@ func readRecordHeader(ando *AndoConnection, i *int) bool {
 	*i++
 	// byteCount
 	b = genericState.rawData[*i]
-	ando.hp64k.data.byteCount = uint16(b << 8)
+	ando.hp64k.data.byteCount = uint16(b) << 8
 	ando.hp64k.data.checksum += b
 	*i++
 	b = genericState.rawData[*i]
