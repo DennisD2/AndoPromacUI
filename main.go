@@ -56,7 +56,7 @@ func main() {
 		*batchPtr,
 		*uploadPtr,
 		*downloadPtr,
-		F_GENERIC, //F_HP64000ABS,F_ASCIIHex, F_GENERIC
+		F_HP64000ABS, //F_HP64000ABS,F_ASCIIHex, F_GENERIC
 		&andoSerial,
 		nil,
 		0,
@@ -129,20 +129,20 @@ func ttyReader(ando *AndoConnection) {
 			if strings.HasPrefix(str, "[PASS]") {
 				if ando.state == ReceiveData {
 					ando.stopTime = time.Now()
-					log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
-					log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
 					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
 						fmt.Printf("There were %v errors\n\r", errors)
 						errors = 0
 					}
 					if ando.transferFormat == F_GENERIC {
-						parseGeneric(ando)
+						parseGeneric(ando, &errors)
 					}
 					if ando.transferFormat == F_HP64000ABS {
 						initHp64KFormat(ando)
-						parseHp64KFormat(ando)
+						parseHp64KFormat(ando, &lineNumber, &errors)
 					}
+					log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
+					log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
 					lineNumber = 1
 				}
 				if ando.state == SendData {
@@ -168,10 +168,7 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInf
 	if ando.transferFormat == F_ASCIIHex {
 		handleASCIIHexInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
-	/*if ando.transferFormat == F_HP64000ABS {
-		handleHP64KABSInput(ando, num, cbuf, newLine, lineNumber, errors)
-	}*/
-	if ando.transferFormat == F_GENERIC {
+	if ando.transferFormat == F_GENERIC || ando.transferFormat == F_HP64000ABS {
 		handleGenericInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
 }

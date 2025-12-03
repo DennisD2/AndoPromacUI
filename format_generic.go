@@ -26,16 +26,18 @@ func handleGenericInput(ando *AndoConnection, num int, cbuf []byte, line *LineIn
 	fmt.Printf("\n\r")
 }
 
-func parseGeneric(ando *AndoConnection) {
+func parseGeneric(ando *AndoConnection, errors *int) {
 	fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
 
 	valid, dataStart := isRawHeader(genericState.rawData)
 	if !valid {
 		fmt.Printf("Not a raw header!\n\r")
+		*errors++
 	}
 	valid, dataEnd := isRawFooter(genericState.rawData)
 	if !valid {
 		fmt.Printf("Not a raw footer!\n\r")
+		*errors++
 	}
 	fmt.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart, dataEnd)
 
