@@ -2,16 +2,6 @@ package main
 
 import "fmt"
 
-type HP64State int
-
-const (
-	HP64K_SOF         HP64State = 0
-	HP64K_Data_Header           = 1
-	HP64K_Data                  = 2
-	HP64K_Checksum              = 3
-	HP64K_EOF                   = 4
-)
-
 type StartOfFileRecord struct {
 	wordCount       uint8
 	dataBusWidth    uint16
@@ -30,9 +20,8 @@ type DataRecord struct {
 }
 
 type HP64KInfo struct {
-	state HP64State
-	sof   *StartOfFileRecord
-	data  *DataRecord
+	sof  *StartOfFileRecord
+	data *DataRecord
 }
 
 // initHp64KFormat initializes required structures
@@ -42,123 +31,197 @@ func initHp64KFormat(ando *AndoConnection) {
 	var hp64k = new(HP64KInfo)
 	hp64k.sof = sofRecord
 	hp64k.data = dataRecord
-	hp64k.state = HP64K_SOF
 	ando.hp64k = hp64k
 }
 
-func parseHp64KFormat(ando *AndoConnection) {
+// parseHp64KFormat parses all records in data.
+func parseHp64KFormat(ando *AndoConnection, lineNumber *int, errors *int) {
+	fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
 	fmt.Printf("Parsing HP64K format\n\r")
-}
 
-// handleHP64KABSInput handles HP64000 format
-func handleHP64KABSInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInfo, lineNumber *int, errors *int) {
-	for i := 0; i < num; i++ {
-		b := uint8(cbuf[i])
-		if ando.debug > 1 {
-			fmt.Printf("%02x ", b)
-		}
-		if ando.hp64k.state == HP64K_SOF {
-			handleSOFRecord(ando, b, errors)
-
-		} else if ando.hp64k.state == HP64K_Data_Header || ando.hp64k.state == HP64K_Data || ando.hp64k.state == HP64K_Checksum {
-			handleRecordData(ando, b, lineNumber, errors)
-		}
-
+	i := 0
+	valid := readSOFRecord(ando, &i, errors)
+	//ando.debug = 2
+	dumpSOFRecord(ando, ando.hp64k.sof)
+	if !valid {
+		fmt.Printf("Error reading SOF record\n\r")
+		return
 	}
-	if ando.debug > 1 {
-		fmt.Printf("\n\r")
-	}
-}
 
-// handleRecordData handle Data record
-func handleRecordData(ando *AndoConnection, b uint8, lineNumber *int, errors *int) {
-	if ando.hp64k.state == HP64K_Data_Header {
-		if ando.recordPosition == 0 {
-			ando.hp64k.data.wordCount = b
-			ando.hp64k.data.checksum = 0
-			ando.hp64k.data.bytes = nil
-
-			if b == 0x0 {
-				ando.hp64k.state = HP64K_EOF
-				fmt.Printf("End-Of-File record received\n\r")
+	for i < len(genericState.rawData) {
+		valid := readRecord(ando, &i, errors)
+		dumpDataRecord(ando, ando.hp64k.data)
+		if !valid {
+			if ando.hp64k.data.wordCount == 0 && *errors == 0 {
+				fmt.Printf("Reading Data complete\n\r")
+			} else {
+				if *errors > 0 {
+					fmt.Printf("Error reading Data record\n\r")
+				}
 			}
+			return
+		} else {
+			newLine := LineInfo{
+				address: ando.hp64k.data.targetAddress,
+			}
+			for i, b := range ando.hp64k.data.bytes {
+				newLine.codes[i] = b
+				ando.checksum += uint32(b)
+			}
+			ando.lineInfos = append(ando.lineInfos, newLine)
+			*lineNumber++
 		}
-		if ando.recordPosition == 1 {
-			ando.hp64k.data.byteCount = uint16(b << 8)
-			ando.hp64k.data.checksum += b
-		}
-		if ando.recordPosition == 2 {
-			ando.hp64k.data.byteCount = uint16(b)
-			ando.hp64k.data.checksum += b
-		}
+	}
+}
 
-		// "Target address"
-		if ando.recordPosition == 3 {
-			ando.hp64k.data.targetAddress = uint32(b) << 8
-			ando.hp64k.data.checksum += b
-		}
-		if ando.recordPosition == 4 {
-			ando.hp64k.data.targetAddress += uint32(b)
-			ando.hp64k.data.checksum += b
-		}
-		if ando.recordPosition == 5 {
-			ando.hp64k.data.targetAddress += uint32(b) << 24
-			ando.hp64k.data.checksum += b
-		}
-		if ando.recordPosition == 6 {
-			ando.hp64k.data.targetAddress += uint32(b) << 16
-			ando.hp64k.data.checksum += b
+// readSOFRecord reads Start-Of-File record. Returns true if everything is fine, false on error.
+func readSOFRecord(ando *AndoConnection, i *int, errors *int) bool {
+	b := genericState.rawData[*i]
+	if b != 0x4 {
+		fmt.Printf("Illegal wordCount byte with value %v in raw data (value should be always 0x4)\n\r", b)
+		*errors++
+		return false
+	}
+	ando.hp64k.sof.wordCount = b
 
-			ando.hp64k.data.bytePos = 0
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.sof.dataBusWidth = uint16(b) << 8
+	ando.hp64k.sof.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.sof.dataBusWidth += uint16(b)
+	ando.hp64k.sof.checksum += b
 
-			// next state
-			ando.hp64k.state = HP64K_Data
-			ando.recordPosition = 0
-		}
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.sof.dataWidthBase = uint16(b) << 8
+	ando.hp64k.sof.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.sof.dataWidthBase += uint16(b)
+	ando.hp64k.sof.checksum += b
 
-		if ando.hp64k.state == HP64K_Data_Header {
-			ando.recordPosition++
+	// "Transfer address"
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.sof.transferAddress = uint32(b) << 8
+	ando.hp64k.sof.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.sof.transferAddress += uint32(b)
+	ando.hp64k.sof.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.sof.transferAddress += uint32(b) << 24
+	ando.hp64k.sof.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.sof.transferAddress += uint32(b) << 16
+	ando.hp64k.sof.checksum += b
+
+	*i++
+	b = genericState.rawData[*i]
+	if b != ando.hp64k.sof.checksum {
+		fmt.Printf("sof.checksum mismatch 0x%02x!=0x%02xd!\n\r", b, ando.hp64k.sof.checksum)
+		*errors++
+		return false
+	} else {
+		if ando.debug >= 1 {
+			fmt.Printf("Start-Of-File record checksum ok!\n\r")
 		}
-	} else if ando.hp64k.state == HP64K_Data {
+	}
+	*i++
+	return true
+}
+
+// readRecord reads a record. i must point to byte 0 of this record.
+// Returns true as long as there are a) no errors and b) End-Of-File record was not read.
+func readRecord(ando *AndoConnection, i *int, errors *int) bool {
+	var b byte
+
+	// init some values
+	ando.hp64k.data.checksum = 0
+	ando.hp64k.data.bytes = nil
+
+	if !readRecordHeader(ando, i) {
+		// End-Of-File record was read
+		return false
+	}
+
+	// data bytes in record
+	dataBytesEnd := *i + int(ando.hp64k.data.byteCount)
+	for *i < dataBytesEnd {
+		b = genericState.rawData[*i]
 		ando.hp64k.data.bytes = append(ando.hp64k.data.bytes, b)
 		ando.hp64k.data.checksum += b
-		ando.hp64k.data.bytePos++
-		if ando.hp64k.data.bytePos == ando.hp64k.data.byteCount {
-			ando.hp64k.state = HP64K_Checksum
-			ando.recordPosition++
-		}
-	} else if ando.hp64k.state == HP64K_Checksum {
-		checksum := b
-		if checksum != ando.hp64k.data.checksum {
-			fmt.Printf("data.checksum mismatch 0x%02x!=0x%02xd!\n\r", checksum, ando.hp64k.data.checksum)
-			*errors++
-		} else {
-			if ando.debug > 2 {
-				fmt.Printf("Data record checksum ok!\n\r")
-			}
-		}
-
-		dumpDataRecord(ando, ando.hp64k.data)
-
-		newLine := LineInfo{
-			address: ando.hp64k.data.targetAddress,
-		}
-		for i, b := range ando.hp64k.data.bytes {
-			newLine.codes[i] = b
-			ando.checksum += uint32(b)
-		}
-		ando.lineInfos = append(ando.lineInfos, newLine)
-		*lineNumber++
-
-		ando.recordPosition = 0
-		ando.hp64k.state = HP64K_Data_Header
+		*i++
 	}
+
+	// checksum
+	b = genericState.rawData[*i]
+	if b != ando.hp64k.data.checksum {
+		fmt.Printf("data.checksum mismatch read:0x%02x != calculated:0x%02x! pos=%v\n\r", b, ando.hp64k.data.checksum, *i)
+		*errors++
+		return false
+	} else {
+		if ando.debug > 2 {
+			fmt.Printf("Data record checksum ok!\n\r")
+		}
+	}
+
+	// move i to byte 0 of next record
+	*i++
+	return true
+}
+
+// readRecordHeader reads header of a record. Returns tue for a common data record and false for the End-Of-File record.
+// cursor i must point on calling to first byte of header. cursor will point to first byte of next record on exit.
+func readRecordHeader(ando *AndoConnection, i *int) bool {
+	// wordCount
+	b := genericState.rawData[*i]
+	ando.hp64k.data.wordCount = b
+	if b == 0x0 {
+		fmt.Printf("End-Of-File record received\n\r")
+		return false
+	}
+	*i++
+	// byteCount
+	b = genericState.rawData[*i]
+	ando.hp64k.data.byteCount = uint16(b << 8)
+	ando.hp64k.data.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.data.byteCount = uint16(b)
+	ando.hp64k.data.checksum += b
+
+	// Target address
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.data.targetAddress = uint32(b) << 8
+	ando.hp64k.data.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.data.targetAddress += uint32(b)
+	ando.hp64k.data.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.data.targetAddress += uint32(b) << 24
+	ando.hp64k.data.checksum += b
+	*i++
+	b = genericState.rawData[*i]
+	ando.hp64k.data.targetAddress += uint32(b) << 16
+	ando.hp64k.data.checksum += b
+
+	// move i to byte 0 of next record
+	*i++
+	return true
 }
 
 // dumpDataRecord dump a Data record
 func dumpDataRecord(ando *AndoConnection, record *DataRecord) {
 	if ando.debug > 1 {
-		fmt.Printf("data.wordCount=%d\n\r", record.wordCount)
+		fmt.Printf("\n\rdata.wordCount=%d\n\r", record.wordCount)
 		fmt.Printf("data.byteCount=%d\n\r", record.byteCount)
 	}
 	fmt.Printf("0x%08x: ", record.targetAddress)
@@ -171,72 +234,7 @@ func dumpDataRecord(ando *AndoConnection, record *DataRecord) {
 	}
 }
 
-// handleSOFRecord handle Start-Of-File record
-func handleSOFRecord(ando *AndoConnection, b uint8, errors *int) {
-	if ando.recordPosition == 0 {
-		ando.hp64k.sof.wordCount = b
-		ando.hp64k.sof.checksum = 0
-	}
-	if ando.recordPosition == 1 {
-		ando.hp64k.sof.dataBusWidth = uint16(b) << 8
-		ando.hp64k.sof.checksum += b
-	}
-	if ando.recordPosition == 2 {
-		ando.hp64k.sof.dataBusWidth += uint16(b)
-		ando.hp64k.sof.checksum += b
-	}
-	if ando.recordPosition == 3 {
-		ando.hp64k.sof.dataWidthBase = uint16(b) << 8
-		ando.hp64k.sof.checksum += b
-	}
-	if ando.recordPosition == 4 {
-		ando.hp64k.sof.dataWidthBase += uint16(b)
-		ando.hp64k.sof.checksum += b
-	}
-
-	// "Transfer address"
-	if ando.recordPosition == 5 {
-		ando.hp64k.sof.transferAddress = uint32(b) << 8
-		ando.hp64k.sof.checksum += b
-	}
-	if ando.recordPosition == 6 {
-		ando.hp64k.sof.transferAddress += uint32(b)
-		ando.hp64k.sof.checksum += b
-	}
-	if ando.recordPosition == 7 {
-		ando.hp64k.sof.transferAddress += uint32(b) << 24
-		ando.hp64k.sof.checksum += b
-	}
-	if ando.recordPosition == 8 {
-		ando.hp64k.sof.transferAddress += uint32(b) << 16
-		ando.hp64k.sof.checksum += b
-	}
-
-	if ando.recordPosition == 9 {
-		checksum := b
-		if checksum != ando.hp64k.sof.checksum {
-			fmt.Printf("sof.checksum mismatch 0x%02x!=0x%02xd!\n\r", checksum, ando.hp64k.sof.checksum)
-			*errors++
-		} else {
-			if ando.debug >= 1 {
-				fmt.Printf("Start-Of-File record checksum ok!\n\r")
-			}
-		}
-
-		dumpSOFRecord(ando, ando.hp64k.sof)
-
-		// set up vars for next record
-		ando.hp64k.state = HP64K_Data_Header
-		ando.recordPosition = 0
-	}
-	if ando.hp64k.state == HP64K_SOF {
-		// move pointer forward
-		ando.recordPosition++
-	}
-
-}
-
-// dumpSOFRecord dumps a Start-Of-File record
+// dumpSOFRecord dump a Start-Of-File record
 func dumpSOFRecord(ando *AndoConnection, record *StartOfFileRecord) {
 	if ando.debug > 1 {
 		fmt.Printf("sof.wordCount=%d\n\r", record.wordCount)
