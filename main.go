@@ -168,10 +168,7 @@ func handleTTYInput(ando *AndoConnection, num int, cbuf []byte, newLine *LineInf
 	if ando.transferFormat == F_ASCIIHex {
 		handleASCIIHexInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
-	/*if ando.transferFormat == F_HP64000ABS {
-		handleHP64KABSInput(ando, num, cbuf, newLine, lineNumber, errors)
-	}*/
-	if ando.transferFormat == F_GENERIC {
+	if ando.transferFormat == F_GENERIC || ando.transferFormat == F_HP64000ABS {
 		handleGenericInput(ando, num, cbuf, newLine, lineNumber, errors)
 	}
 }
