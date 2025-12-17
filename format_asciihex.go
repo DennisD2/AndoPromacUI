@@ -98,6 +98,7 @@ func parseLine(bytes []byte, lineNumber int, lineInfo *LineInfo, errors *int, ch
 // uploadFileAsASCIIHex uploads local file to EPrommer's RAM buffer, transfer format being used is ASCII-Hex
 func uploadFileAsASCIIHex(ando *AndoConnection, errors *int) {
 	sb := new(strings.Builder)
+	var checksum uint32 = 0
 
 	bytes, error := loadFile(ando, errors)
 	if error {
@@ -120,6 +121,7 @@ func uploadFileAsASCIIHex(ando *AndoConnection, errors *int) {
 		b := bytes[i]
 		str := fmt.Sprintf("%02x,", b)
 		sb.WriteString(strings.ToUpper(str))
+		checksum += uint32(b)
 
 		i++
 		bytesInLine++
@@ -127,6 +129,7 @@ func uploadFileAsASCIIHex(ando *AndoConnection, errors *int) {
 			sb.WriteString("\r")
 		}
 	}
+	log.Printf("Upload data checksum: 0x%06x\n\r", checksum)
 	log.Printf("Upload buffer has size %v bytes. Please wait for upload to complete...\n\r", sb.Len())
 
 	// Send data collected
