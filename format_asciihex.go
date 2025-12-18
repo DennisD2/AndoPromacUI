@@ -13,15 +13,15 @@ func parseASCIIHexFormat(ando *AndoConnection, lineNumber *int, errors *int) {
 	log.Printf("Parsing ASCII-Hex format\n\r")
 	valid, dataStart := isRawHeaderASCIIHex(genericState.rawData)
 	if !valid {
-		fmt.Printf("Not a ASCII-Hex header!\n\r")
+		log.Printf("Not a ASCII-Hex header!\n\r")
 		*errors++
 	}
 	valid, dataEnd := isRawFooterASCIIHex(genericState.rawData)
 	if !valid {
-		fmt.Printf("Not a ASCII-Hex footer!\n\r")
+		log.Printf("Not a ASCII-Hex footer!\n\r")
 		*errors++
 	}
-	fmt.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart, dataEnd)
+	log.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart, dataEnd)
 
 	var lineBytes []byte
 	i := dataStart
@@ -41,7 +41,7 @@ func parseASCIIHexFormat(ando *AndoConnection, lineNumber *int, errors *int) {
 				dumpLine(*newLine)
 				*lineNumber++
 			} else {
-				fmt.Printf("Line read fail: '%v'\n\r", string(lineBytes))
+				log.Printf("Line read fail: '%v'\n\r", string(lineBytes))
 			}
 			lineBytes = lineBytes[:0]
 		}
@@ -195,13 +195,13 @@ func isRawHeaderASCIIHex(data []byte) (bool, int) {
 		}
 		num_zeros++
 	}
-	fmt.Printf("ASCII-Hex header OK\r\n")
+	log.Printf("ASCII-Hex header OK\r\n")
 
 	// Overread remaining 0x0
 	for ; data[i] == 0x0; i++ {
 		num_zeros++
 	}
-	fmt.Printf("Number of header zero bytes read: %v\r\n", num_zeros)
+	log.Printf("Number of header zero bytes read: %v\r\n", num_zeros)
 	return true, i
 }
 
@@ -216,17 +216,17 @@ func isRawFooterASCIIHex(data []byte) (bool, int) {
 		}
 	}
 	if i == 0 {
-		fmt.Printf("No 0xa marker found in data")
+		log.Printf("No 0xa marker found in data")
 		return false, 0
 	}
 	pos = i + 1
 	if data[pos-2] != 0xd || data[pos-1] != 0xa {
-		fmt.Printf("XXXX %02x %02x\n\r", data[pos-2], data[pos-1])
-		fmt.Printf("\r\nZZZZ: ")
+		log.Printf("XXXX %02x %02x\n\r", data[pos-2], data[pos-1])
+		log.Printf("\r\nZZZZ: ")
 		for i := 0; i < 16; i++ {
-			fmt.Printf("%02x ", data[pos-16+i])
+			log.Printf("%02x ", data[pos-16+i])
 		}
-		fmt.Printf("\r\n")
+		log.Printf("\r\n")
 		return false, 0
 	}
 	pos = pos - 3
@@ -241,8 +241,8 @@ func isRawFooterASCIIHex(data []byte) (bool, int) {
 	for ; data[i] == 0x0; i-- {
 		num_zeros++
 	}
-	fmt.Printf("ASCII-Hex footer OK\r\n")
-	fmt.Printf("Number of header zero bytes read: %v\r\n", num_zeros)
+	log.Printf("ASCII-Hex footer OK\r\n")
+	log.Printf("Number of header zero bytes read: %v\r\n", num_zeros)
 	return true, pos - NUM_FOOTER_ZEROES
 }
 

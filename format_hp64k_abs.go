@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type StartOfFileRecord struct {
 	wordCount       uint8
@@ -36,13 +39,13 @@ func initHp64KFormat(ando *AndoConnection) {
 
 // parseHp64KFormat parses all records in data.
 func parseHp64KFormat(ando *AndoConnection, lineNumber *int, errors *int) {
-	fmt.Printf("Parsing HP64K format\n\r")
+	log.Printf("Parsing HP64K format\n\r")
 
 	i := 0
 	valid := readSOFRecord(ando, &i, errors)
 	//dumpSOFRecord(ando, ando.hp64k.sof)
 	if !valid {
-		fmt.Printf("Error reading SOF record\n\r")
+		log.Printf("Error reading SOF record\n\r")
 		return
 	}
 
@@ -50,10 +53,10 @@ func parseHp64KFormat(ando *AndoConnection, lineNumber *int, errors *int) {
 		valid := readRecord(ando, &i, errors)
 		if !valid {
 			if ando.hp64k.data.wordCount == 0 && *errors == 0 {
-				fmt.Printf("Reading Data complete\n\r")
+				log.Printf("Reading Data complete\n\r")
 			} else {
 				if *errors > 0 {
-					fmt.Printf("Error reading Data record\n\r")
+					log.Printf("Error reading Data record\n\r")
 				}
 			}
 			return
@@ -76,7 +79,7 @@ func parseHp64KFormat(ando *AndoConnection, lineNumber *int, errors *int) {
 func readSOFRecord(ando *AndoConnection, i *int, errors *int) bool {
 	b := genericState.rawData[*i]
 	if b != 0x4 {
-		fmt.Printf("Illegal wordCount byte with value %v in raw data (value should be always 0x4)\n\r", b)
+		log.Printf("Illegal wordCount byte with value %v in raw data (value should be always 0x4)\n\r", b)
 		*errors++
 		return false
 	}
@@ -121,12 +124,12 @@ func readSOFRecord(ando *AndoConnection, i *int, errors *int) bool {
 	*i++
 	b = genericState.rawData[*i]
 	if b != ando.hp64k.sof.checksum {
-		fmt.Printf("sof.checksum mismatch 0x%02x!=0x%02xd!\n\r", b, ando.hp64k.sof.checksum)
+		log.Printf("sof.checksum mismatch 0x%02x!=0x%02xd!\n\r", b, ando.hp64k.sof.checksum)
 		*errors++
 		return false
 	} else {
 		if ando.debug >= 1 {
-			fmt.Printf("Start-Of-File record checksum ok!\n\r")
+			log.Printf("Start-Of-File record checksum ok!\n\r")
 		}
 	}
 	*i++
@@ -159,12 +162,12 @@ func readRecord(ando *AndoConnection, i *int, errors *int) bool {
 	// checksum
 	b = genericState.rawData[*i]
 	if b != ando.hp64k.data.checksum {
-		fmt.Printf("data.checksum mismatch read:0x%02x != calculated:0x%02x! pos=%v\n\r", b, ando.hp64k.data.checksum, *i)
+		log.Printf("data.checksum mismatch read:0x%02x != calculated:0x%02x! pos=%v\n\r", b, ando.hp64k.data.checksum, *i)
 		*errors++
 		return false
 	} else {
 		if ando.debug > 2 {
-			fmt.Printf("Data record checksum ok!\n\r")
+			log.Printf("Data record checksum ok!\n\r")
 		}
 	}
 
@@ -180,7 +183,7 @@ func readRecordHeader(ando *AndoConnection, i *int) bool {
 	b := genericState.rawData[*i]
 	ando.hp64k.data.wordCount = b
 	if b == 0x0 {
-		fmt.Printf("End-Of-File record received\n\r")
+		log.Printf("End-Of-File record received\n\r")
 		return false
 	}
 	*i++
@@ -219,16 +222,16 @@ func readRecordHeader(ando *AndoConnection, i *int) bool {
 // dumpDataRecord dump a Data record
 func dumpDataRecord(ando *AndoConnection, record *DataRecord) {
 	if ando.debug > 1 {
-		fmt.Printf("\n\rdata.wordCount=%d\n\r", record.wordCount)
-		fmt.Printf("data.byteCount=%d\n\r", record.byteCount)
+		log.Printf("\n\rdata.wordCount=%d\n\r", record.wordCount)
+		log.Printf("data.byteCount=%d\n\r", record.byteCount)
 	}
 	fmt.Printf("0x%08x: ", record.targetAddress)
 	for _, b := range record.bytes {
-		fmt.Printf("%02x ", b)
+		log.Printf("%02x ", b)
 	}
 	fmt.Printf("\n\r")
 	if ando.debug > 1 {
-		fmt.Printf("data.checksum=0x%02x\n\r", record.checksum)
+		log.Printf("data.checksum=0x%02x\n\r", record.checksum)
 	}
 }
 

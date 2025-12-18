@@ -132,7 +132,7 @@ func ttyReader(ando *AndoConnection) {
 				if ando.state == ReceiveData {
 					// End of download data
 					ando.stopTime = time.Now()
-					fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
+					log.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
 					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
 						fmt.Printf("There were %v errors on data download\n\r", errors)
@@ -143,15 +143,15 @@ func ttyReader(ando *AndoConnection) {
 							fmt.Printf("There were %v errors during parsing\n\r", errors)
 							errors = 0
 						} else {
-							log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
-							log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
+							fmt.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
+							fmt.Printf("Checksum calculated: %06x\n\r", ando.checksum)
 						}
 					}
 					lineNumber = 1
 				}
 				if ando.state == SendData {
 					// Device signals that upload was processed complete and without errors
-					log.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
+					fmt.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
 				}
 				if ando.state == ReceiveData || ando.state == SendData {
 					// Data receive/send is complete
@@ -481,7 +481,7 @@ func writeDataToFile(ando *AndoConnection) {
 		log.Printf("Error Writing file %s\n\r", err)
 		return
 	}
-	fmt.Printf("\n\rWrote %v bytes to file\n\r", numBytes)
+	log.Printf("\n\rWrote %v bytes to file\n\r", numBytes)
 }
 
 func createFileName(file string, checksum uint32) string {
