@@ -138,7 +138,7 @@ func ttyReader(ando *AndoConnection) {
 						fmt.Printf("There were %v errors on data download\n\r", errors)
 						errors = 0
 					} else {
-						parseFormat(ando, errors, lineNumber)
+						parseFormat(ando, errors, &lineNumber)
 						if errors > 0 {
 							fmt.Printf("There were %v errors during parsing\n\r", errors)
 							errors = 0
@@ -297,16 +297,16 @@ func endCriteriaCheck(bytes []byte) bool {
 }
 
 // parseFormat calls function depending on transfer format
-func parseFormat(ando *AndoConnection, errors int, lineNumber int) {
+func parseFormat(ando *AndoConnection, errors int, lineNumber *int) {
 	if ando.transferFormat == F_GENERIC {
 		parseGeneric(ando, &errors)
 	}
 	if ando.transferFormat == F_HP64000ABS {
 		initHp64KFormat(ando)
-		parseHp64KFormat(ando, &lineNumber, &errors)
+		parseHp64KFormat(ando, lineNumber, &errors)
 	}
 	if ando.transferFormat == F_ASCIIHex {
-		parseASCIIHexFormat(ando, &lineNumber, &errors)
+		parseASCIIHexFormat(ando, lineNumber, &errors)
 	}
 }
 
