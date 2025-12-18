@@ -163,12 +163,8 @@ func uploadFileAsASCIIHex(ando *AndoConnection, errors *int) {
 
 // 53 and 99 have been analyzed from download data. The manual says always 100x zeroes (page 28)
 
-// firmware 21.7
+// firmware 21.7 and 21.9
 const NUM_HEADER_ZEROES = 52
-
-// firmware 21.9
-//const NUM_HEADER_ZEROES = 30
-
 const NUM_FOOTER_ZEROES = 99
 
 // isRawHeaderASCIIHex returns true if this is a correct ASCII Hex transfer data header
