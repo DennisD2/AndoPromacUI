@@ -36,7 +36,6 @@ func initHp64KFormat(ando *AndoConnection) {
 
 // parseHp64KFormat parses all records in data.
 func parseHp64KFormat(ando *AndoConnection, lineNumber *int, errors *int) {
-	fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
 	fmt.Printf("Parsing HP64K format\n\r")
 
 	i := 0

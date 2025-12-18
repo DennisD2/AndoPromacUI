@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -27,8 +28,7 @@ func handleGenericInput(ando *AndoConnection, num int, cbuf []byte, line *LineIn
 }
 
 func parseGeneric(ando *AndoConnection, errors *int) {
-	fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
-
+	log.Printf("Parsing GENERIC format\n\r")
 	valid, dataStart := isRawHeader(genericState.rawData)
 	if !valid {
 		fmt.Printf("Not a raw header!\n\r")

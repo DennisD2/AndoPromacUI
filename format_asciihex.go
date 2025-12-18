@@ -10,16 +10,15 @@ import (
 
 // parseASCIIHexFormat parses ASCII Hex transfer format data
 func parseASCIIHexFormat(ando *AndoConnection, lineNumber *int, errors *int) {
-	fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
-
+	log.Printf("Parsing ASCII-Hex format\n\r")
 	valid, dataStart := isRawHeaderASCIIHex(genericState.rawData)
 	if !valid {
-		fmt.Printf("Not a raw header!\n\r")
+		fmt.Printf("Not a ASCII-Hex header!\n\r")
 		*errors++
 	}
 	valid, dataEnd := isRawFooterASCIIHex(genericState.rawData)
 	if !valid {
-		fmt.Printf("Not a raw footer!\n\r")
+		fmt.Printf("Not a ASCII-Hex footer!\n\r")
 		*errors++
 	}
 	fmt.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart, dataEnd)
