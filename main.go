@@ -109,8 +109,7 @@ func main() {
 	os.Exit(0)
 }
 
-var endCriteriaStart = ""
-var endCriteriaTest = ""
+var endCriteriaTest = 0
 
 // ttyReader handle tty input from Programmer device
 func ttyReader(ando *AndoConnection) {
@@ -174,9 +173,112 @@ func ttyReader(ando *AndoConnection) {
 	}
 }
 
-func endCriteriaCheck(str []byte) bool {
+// 5b             [
+// 50 41 53 53     P A S S
+// 5d              ]
+func endCriteriaCheck(bytes []byte) bool {
 	//Next line: this one lines works with firmware 21.7
-	return strings.HasPrefix(string(str), "[PASS]")
+	//return strings.HasPrefix(string(str), "[PASS]")
+	str := string(bytes)
+
+	switch endCriteriaTest {
+	case 0:
+		if strings.HasPrefix(str, "[") {
+			endCriteriaTest = 1
+			if strings.HasPrefix(str, "[P") {
+				endCriteriaTest = 2
+			}
+			if strings.HasPrefix(str, "[PA") {
+				endCriteriaTest = 3
+			}
+			if strings.HasPrefix(str, "[PAS") {
+				endCriteriaTest = 4
+			}
+			if strings.HasPrefix(str, "[PASS") {
+				endCriteriaTest = 5
+			}
+			if strings.HasPrefix(str, "[PASS]") {
+				endCriteriaTest = 6
+			}
+		}
+		break
+	case 1:
+		if strings.HasPrefix(str, "P") {
+			endCriteriaTest = 2
+		}
+		if strings.HasPrefix(str, "PA") {
+			endCriteriaTest = 3
+		}
+		if strings.HasPrefix(str, "PAS") {
+			endCriteriaTest = 4
+		}
+		if strings.HasPrefix(str, "PASS") {
+			endCriteriaTest = 5
+		}
+		if strings.HasPrefix(str, "PASS]") {
+			endCriteriaTest = 6
+		}
+		break
+	case 2:
+		if strings.HasPrefix(str, "A") {
+			endCriteriaTest = 3
+		}
+		if strings.HasPrefix(str, "AS") {
+			endCriteriaTest = 4
+		}
+		if strings.HasPrefix(str, "ASS") {
+			endCriteriaTest = 5
+		}
+		if strings.HasPrefix(str, "ASS]") {
+			endCriteriaTest = 6
+		}
+		break
+	case 3:
+		if strings.HasPrefix(str, "S") {
+			endCriteriaTest = 4
+		}
+		if strings.HasPrefix(str, "SS") {
+			endCriteriaTest = 5
+		}
+		if strings.HasPrefix(str, "SS]") {
+			endCriteriaTest = 6
+		}
+		break
+	case 4:
+		if strings.HasPrefix(str, "S") {
+			endCriteriaTest = 5
+		}
+		if strings.HasPrefix(str, "S]") {
+			endCriteriaTest = 6
+		}
+	default:
+		log.Printf("C: UNKNOWN CASE in byte stream (%v)\n\r")
+		break
+	}
+
+	switch endCriteriaTest {
+	case 1:
+		log.Printf("C: Found '[' string in byte stream\n\r")
+		break
+	case 2:
+		log.Printf("C: Found '[P' string in byte stream\n\r")
+		break
+	case 3:
+		log.Printf("C: Found '[PA' string in byte stream\n\r")
+		break
+	case 4:
+		log.Printf("C: Found '[PAS' string in byte stream\n\r")
+		break
+	case 5:
+		log.Printf("C: Found '[PASS' string in byte stream\n\r")
+		break
+	case 6:
+		log.Printf("C: Found '[PASS]' string in byte stream\n\r")
+		endCriteriaTest = 0
+		return true
+	}
+
+	return false
 }
 
 // parseFormat calls function depending on transfer format
@@ -233,6 +335,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.lineInfos = nil
 					ando.checksum = 0
 					initGenericFormat(ando)
+					endCriteriaTest = 0
 
 					fmt.Println("\n\r")
 					ando.state = ReceiveData
