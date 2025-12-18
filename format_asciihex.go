@@ -161,9 +161,8 @@ func uploadFileAsASCIIHex(ando *AndoConnection, errors *int) {
 	ando.state = SendData
 }
 
-// 53 and 99 have been analyzed from download data. The manual says always 100x zeroes (page 28)
-
 // firmware 21.7 and 21.9
+// 52 and 99 have been analyzed from download data. The manual says always 100x zeroes (page 28)
 const NUM_HEADER_ZEROES = 52
 const NUM_FOOTER_ZEROES = 99
 
