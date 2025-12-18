@@ -249,8 +249,6 @@ func endCriteriaCheck(bytes []byte) bool {
 		}
 		if strings.HasPrefix(str, "SS]") {
 			endCriteriaTest = 6
-		} else {
-			endCriteriaTest = 0
 		}
 		break
 	case 4:
