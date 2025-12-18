@@ -109,6 +109,9 @@ func main() {
 	os.Exit(0)
 }
 
+var endCriteriaStart = ""
+var endCriteriaTest = ""
+
 // ttyReader handle tty input from Programmer device
 func ttyReader(ando *AndoConnection) {
 	var newLine LineInfo
@@ -125,8 +128,8 @@ func ttyReader(ando *AndoConnection) {
 			fmt.Printf("Error in Read: %s\n", err)
 			ando.continueLoop = 0
 		} else {
-			str := string(cbuf)
-			if strings.HasPrefix(str, "[PASS]") {
+			endCriteriaReached := endCriteriaCheck(cbuf)
+			if endCriteriaReached {
 				if ando.state == ReceiveData {
 					// End of download data
 					ando.stopTime = time.Now()
@@ -169,6 +172,11 @@ func ttyReader(ando *AndoConnection) {
 			}
 		}
 	}
+}
+
+func endCriteriaCheck(str []byte) bool {
+	//Next line: this one lines works with firmware 21.7
+	return strings.HasPrefix(string(str), "[PASS]")
 }
 
 // parseFormat calls function depending on transfer format
