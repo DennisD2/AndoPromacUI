@@ -174,6 +174,8 @@ func ttyReader(ando *AndoConnection) {
 	}
 }
 
+// endCriteriaCheck checks if a '[PASS]' message was received. This may come in arbitrary chunks
+// so we have to check over several consecutive reads
 // 5b             [
 // 50 41 53 53     P A S S
 // 5d              ]
