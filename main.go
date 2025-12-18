@@ -132,6 +132,7 @@ func ttyReader(ando *AndoConnection) {
 				if ando.state == ReceiveData {
 					// End of download data
 					ando.stopTime = time.Now()
+					fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
 					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
 						fmt.Printf("There were %v errors on data download\n\r", errors)
@@ -205,6 +206,8 @@ func endCriteriaCheck(bytes []byte) bool {
 	case 1:
 		if strings.HasPrefix(str, "P") {
 			endCriteriaTest = 2
+		} else {
+			endCriteriaTest = 0
 		}
 		if strings.HasPrefix(str, "PA") {
 			endCriteriaTest = 3
@@ -222,6 +225,8 @@ func endCriteriaCheck(bytes []byte) bool {
 	case 2:
 		if strings.HasPrefix(str, "A") {
 			endCriteriaTest = 3
+		} else {
+			endCriteriaTest = 0
 		}
 		if strings.HasPrefix(str, "AS") {
 			endCriteriaTest = 4
@@ -236,23 +241,35 @@ func endCriteriaCheck(bytes []byte) bool {
 	case 3:
 		if strings.HasPrefix(str, "S") {
 			endCriteriaTest = 4
+		} else {
+			endCriteriaTest = 0
 		}
 		if strings.HasPrefix(str, "SS") {
 			endCriteriaTest = 5
 		}
 		if strings.HasPrefix(str, "SS]") {
 			endCriteriaTest = 6
+		} else {
+			endCriteriaTest = 0
 		}
 		break
 	case 4:
 		if strings.HasPrefix(str, "S") {
 			endCriteriaTest = 5
+		} else {
+			endCriteriaTest = 0
 		}
 		if strings.HasPrefix(str, "S]") {
 			endCriteriaTest = 6
 		}
+	case 5:
+		if strings.HasPrefix(str, "]") {
+			endCriteriaTest = 6
+		} else {
+			endCriteriaTest = 0
+		}
 	default:
-		log.Printf("C: UNKNOWN CASE in byte stream (%v)\n\r")
+		log.Printf("C: UNKNOWN CASE in byte stream (%v)\n\r", endCriteriaTest)
 		break
 	}
 
