@@ -127,7 +127,7 @@ func ttyReader(ando *AndoConnection) {
 			fmt.Printf("Error in Read: %s\n", err)
 			ando.continueLoop = 0
 		} else {
-			endCriteriaReached := endCriteriaCheck(cbuf)
+			endCriteriaReached := endCriteriaCheck(cbuf, ando.debug)
 			if endCriteriaReached {
 				if ando.state == ReceiveData {
 					// End of download data
@@ -177,7 +177,7 @@ func ttyReader(ando *AndoConnection) {
 // 5b             [
 // 50 41 53 53     P A S S
 // 5d              ]
-func endCriteriaCheck(bytes []byte) bool {
+func endCriteriaCheck(bytes []byte, debug int) bool {
 	//Next line: this one lines works with firmware 21.7
 	//return strings.HasPrefix(string(str), "[PASS]")
 	str := string(bytes)
@@ -271,26 +271,30 @@ func endCriteriaCheck(bytes []byte) bool {
 		break
 	}
 
+	infoPart := ""
 	switch endCriteriaTest {
 	case 1:
-		log.Printf("C: Found '[' string in byte stream\n\r")
+		infoPart = "["
 		break
 	case 2:
-		log.Printf("C: Found '[P' string in byte stream\n\r")
+		infoPart = "[P"
 		break
 	case 3:
-		log.Printf("C: Found '[PA' string in byte stream\n\r")
+		infoPart = "[PA"
 		break
 	case 4:
-		log.Printf("C: Found '[PAS' string in byte stream\n\r")
+		infoPart = "[PAS"
 		break
 	case 5:
-		log.Printf("C: Found '[PASS' string in byte stream\n\r")
+		infoPart = "[PASS"
 		break
 	case 6:
-		log.Printf("C: Found '[PASS]' string in byte stream\n\r")
+		infoPart = "[PASS]"
 		endCriteriaTest = 0
 		return true
+	}
+	if infoPart != "" && debug > 1 {
+		log.Printf("C: Found '%v' string in byte stream\n\r", infoPart)
 	}
 
 	return false
