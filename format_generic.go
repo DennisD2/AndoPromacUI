@@ -31,15 +31,15 @@ func parseGeneric(ando *AndoConnection, errors *int) {
 	log.Printf("Parsing GENERIC format\n\r")
 	valid, dataStart := isRawHeader(genericState.rawData)
 	if !valid {
-		fmt.Printf("Not a raw header!\n\r")
+		log.Printf("Not a raw header!\n\r")
 		*errors++
 	}
 	valid, dataEnd := isRawFooter(genericState.rawData)
 	if !valid {
-		fmt.Printf("Not a raw footer!\n\r")
+		log.Printf("Not a raw footer!\n\r")
 		*errors++
 	}
-	fmt.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart, dataEnd)
+	log.Printf("%v bytes in range %v-%v\n\r", (dataEnd - dataStart), dataStart, dataEnd)
 
 	sb := new(strings.Builder)
 	sb.WriteString("\n\r")

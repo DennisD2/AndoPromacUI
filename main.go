@@ -109,8 +109,6 @@ func main() {
 	os.Exit(0)
 }
 
-var endCriteriaTest = 0
-
 // ttyReader handle tty input from Programmer device
 func ttyReader(ando *AndoConnection) {
 	var newLine LineInfo
@@ -124,23 +122,22 @@ func ttyReader(ando *AndoConnection) {
 		// check Ando tty
 		num, err := ando.serial.tty.Read(cbuf)
 		if err != nil {
-			fmt.Printf("Error in Read: %s\n", err)
+			log.Printf("Error in Read: %s\n", err)
 			ando.continueLoop = 0
 		} else {
-			endCriteriaReached := endCriteriaCheck(cbuf)
+			endCriteriaReached := endCriteriaCheck(cbuf, ando.debug)
 			if endCriteriaReached {
 				if ando.state == ReceiveData {
 					// End of download data
 					ando.stopTime = time.Now()
-					fmt.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
-					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
+					log.Printf("Read %v raw bytes, in %.4v seconds\n\r", len(genericState.rawData), ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
-						fmt.Printf("There were %v errors on data download\n\r", errors)
+						log.Printf("There were %v errors on data download\n\r", errors)
 						errors = 0
 					} else {
 						parseFormat(ando, errors, &lineNumber)
 						if errors > 0 {
-							fmt.Printf("There were %v errors during parsing\n\r", errors)
+							log.Printf("There were %v errors during parsing\n\r", errors)
 							errors = 0
 						} else {
 							log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
@@ -174,10 +171,43 @@ func ttyReader(ando *AndoConnection) {
 	}
 }
 
+// endCriteriaCheck checks if a '[PASS]' message was received. This may come in arbitrary chunks
+// so we have to check over several consecutive reads
 // 5b             [
 // 50 41 53 53     P A S S
 // 5d              ]
-func endCriteriaCheck(bytes []byte) bool {
+var passPattern = []byte("[PASS]")
+var endCriteriaTest = 0
+
+func endCriteriaCheck(chunk []byte, debug int) bool {
+	for _, b := range chunk {
+		if b == passPattern[endCriteriaTest] {
+			if debug > 1 {
+				log.Printf("C: Found '%v' string in byte stream\n\r", string(passPattern[:endCriteriaTest]))
+			}
+			endCriteriaTest++
+			if endCriteriaTest == len(passPattern) {
+				endCriteriaTest = 0
+				if debug > 1 {
+					log.Printf("C: Found '[PASS]' in byte stream\n\r")
+				}
+				return true
+			}
+		} else {
+			// restart check
+			if b == passPattern[0] {
+				endCriteriaTest = 1
+			} else {
+				endCriteriaTest = 0
+			}
+		}
+	}
+
+	return false
+}
+
+/*
+func endCriteriaCheck_OLD(bytes []byte, debug int) bool {
 	//Next line: this one lines works with firmware 21.7
 	//return strings.HasPrefix(string(str), "[PASS]")
 	str := string(bytes)
@@ -271,30 +301,35 @@ func endCriteriaCheck(bytes []byte) bool {
 		break
 	}
 
+	infoPart := ""
 	switch endCriteriaTest {
 	case 1:
-		log.Printf("C: Found '[' string in byte stream\n\r")
+		infoPart = "["
 		break
 	case 2:
-		log.Printf("C: Found '[P' string in byte stream\n\r")
+		infoPart = "[P"
 		break
 	case 3:
-		log.Printf("C: Found '[PA' string in byte stream\n\r")
+		infoPart = "[PA"
 		break
 	case 4:
-		log.Printf("C: Found '[PAS' string in byte stream\n\r")
+		infoPart = "[PAS"
 		break
 	case 5:
-		log.Printf("C: Found '[PASS' string in byte stream\n\r")
+		infoPart = "[PASS"
 		break
 	case 6:
-		log.Printf("C: Found '[PASS]' string in byte stream\n\r")
+		infoPart = "[PASS]"
 		endCriteriaTest = 0
 		return true
+	}
+	if infoPart != "" && debug > 1 {
+		log.Printf("C: Found '%v' string in byte stream\n\r", infoPart)
 	}
 
 	return false
 }
+*/
 
 // parseFormat calls function depending on transfer format
 func parseFormat(ando *AndoConnection, errors int, lineNumber *int) {
@@ -303,10 +338,10 @@ func parseFormat(ando *AndoConnection, errors int, lineNumber *int) {
 	}
 	if ando.transferFormat == F_HP64000ABS {
 		initHp64KFormat(ando)
-		parseHp64KFormat(ando, lineNumber, &errors)
+		parseHp64KFormat(ando, &lineNumber, &errors)
 	}
 	if ando.transferFormat == F_ASCIIHex {
-		parseASCIIHexFormat(ando, lineNumber, &errors)
+		parseASCIIHexFormat(ando, &lineNumber, &errors)
 	}
 }
 
@@ -481,7 +516,7 @@ func writeDataToFile(ando *AndoConnection) {
 		log.Printf("Error Writing file %s\n\r", err)
 		return
 	}
-	fmt.Printf("\n\rWrote %v bytes to file\n\r", numBytes)
+	log.Printf("\n\rWrote %v bytes to file\n\r", numBytes)
 }
 
 func createFileName(file string, checksum uint32) string {
