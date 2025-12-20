@@ -188,9 +188,6 @@ func endCriteriaCheck(chunk []byte, debug int) bool {
 			endCriteriaTest++
 			if endCriteriaTest == len(passPattern) {
 				endCriteriaTest = 0
-				if debug > 1 {
-					log.Printf("C: Found '[PASS]' in byte stream\n\r")
-				}
 				return true
 			}
 		} else {
