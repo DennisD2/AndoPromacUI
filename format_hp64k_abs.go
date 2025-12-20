@@ -227,7 +227,7 @@ func dumpDataRecord(ando *AndoConnection, record *DataRecord) {
 	}
 	fmt.Printf("0x%08x: ", record.targetAddress)
 	for _, b := range record.bytes {
-		log.Printf("%02x ", b)
+		fmt.Printf("%02x ", b)
 	}
 	fmt.Printf("\n\r")
 	if ando.debug > 1 {
