@@ -122,22 +122,22 @@ func ttyReader(ando *AndoConnection) {
 		// check Ando tty
 		num, err := ando.serial.tty.Read(cbuf)
 		if err != nil {
-			fmt.Printf("Error in Read: %s\n", err)
+			log.Printf("Error in Read: %s\n", err)
 			ando.continueLoop = 0
 		} else {
-			str := string(cbuf)
-			if strings.HasPrefix(str, "[PASS]") {
+			endCriteriaReached := endCriteriaCheck(cbuf, ando.debug)
+			if endCriteriaReached {
 				if ando.state == ReceiveData {
 					// End of download data
 					ando.stopTime = time.Now()
-					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
+					log.Printf("Read %v raw bytes, in %.4v seconds\n\r", len(genericState.rawData), ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
-						fmt.Printf("There were %v errors on data download\n\r", errors)
+						log.Printf("There were %v errors on data download\n\r", errors)
 						errors = 0
 					} else {
-						parseFormat(ando, errors, lineNumber)
+						parseFormat(ando, errors, &lineNumber)
 						if errors > 0 {
-							fmt.Printf("There were %v errors during parsing\n\r", errors)
+							log.Printf("There were %v errors during parsing\n\r", errors)
 							errors = 0
 						} else {
 							log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
@@ -171,17 +171,177 @@ func ttyReader(ando *AndoConnection) {
 	}
 }
 
+// endCriteriaCheck checks if a '[PASS]' message was received. This may come in arbitrary chunks
+// so we have to check over several consecutive reads
+// 5b             [
+// 50 41 53 53     P A S S
+// 5d              ]
+var passPattern = []byte("[PASS]")
+var endCriteriaTest = 0
+
+func endCriteriaCheck(chunk []byte, debug int) bool {
+	for _, b := range chunk {
+		if b == passPattern[endCriteriaTest] {
+			if debug > 1 {
+				log.Printf("C: Found '%v' string in byte stream\n\r", string(passPattern[:endCriteriaTest]))
+			}
+			endCriteriaTest++
+			if endCriteriaTest == len(passPattern) {
+				endCriteriaTest = 0
+				if debug > 1 {
+					log.Printf("C: Found '[PASS]' in byte stream\n\r")
+				}
+				return true
+			}
+		} else {
+			// restart check
+			if b == passPattern[0] {
+				endCriteriaTest = 1
+			} else {
+				endCriteriaTest = 0
+			}
+		}
+	}
+
+	return false
+}
+
+/*
+func endCriteriaCheck_OLD(bytes []byte, debug int) bool {
+	//Next line: this one lines works with firmware 21.7
+	//return strings.HasPrefix(string(str), "[PASS]")
+	str := string(bytes)
+
+	switch endCriteriaTest {
+	case 0:
+		if strings.HasPrefix(str, "[") {
+			endCriteriaTest = 1
+			if strings.HasPrefix(str, "[P") {
+				endCriteriaTest = 2
+			}
+			if strings.HasPrefix(str, "[PA") {
+				endCriteriaTest = 3
+			}
+			if strings.HasPrefix(str, "[PAS") {
+				endCriteriaTest = 4
+			}
+			if strings.HasPrefix(str, "[PASS") {
+				endCriteriaTest = 5
+			}
+			if strings.HasPrefix(str, "[PASS]") {
+				endCriteriaTest = 6
+			}
+		}
+		break
+	case 1:
+		if strings.HasPrefix(str, "P") {
+			endCriteriaTest = 2
+		} else {
+			endCriteriaTest = 0
+		}
+		if strings.HasPrefix(str, "PA") {
+			endCriteriaTest = 3
+		}
+		if strings.HasPrefix(str, "PAS") {
+			endCriteriaTest = 4
+		}
+		if strings.HasPrefix(str, "PASS") {
+			endCriteriaTest = 5
+		}
+		if strings.HasPrefix(str, "PASS]") {
+			endCriteriaTest = 6
+		}
+		break
+	case 2:
+		if strings.HasPrefix(str, "A") {
+			endCriteriaTest = 3
+		} else {
+			endCriteriaTest = 0
+		}
+		if strings.HasPrefix(str, "AS") {
+			endCriteriaTest = 4
+		}
+		if strings.HasPrefix(str, "ASS") {
+			endCriteriaTest = 5
+		}
+		if strings.HasPrefix(str, "ASS]") {
+			endCriteriaTest = 6
+		}
+		break
+	case 3:
+		if strings.HasPrefix(str, "S") {
+			endCriteriaTest = 4
+		} else {
+			endCriteriaTest = 0
+		}
+		if strings.HasPrefix(str, "SS") {
+			endCriteriaTest = 5
+		}
+		if strings.HasPrefix(str, "SS]") {
+			endCriteriaTest = 6
+		}
+		break
+	case 4:
+		if strings.HasPrefix(str, "S") {
+			endCriteriaTest = 5
+		} else {
+			endCriteriaTest = 0
+		}
+		if strings.HasPrefix(str, "S]") {
+			endCriteriaTest = 6
+		}
+	case 5:
+		if strings.HasPrefix(str, "]") {
+			endCriteriaTest = 6
+		} else {
+			endCriteriaTest = 0
+		}
+	default:
+		log.Printf("C: UNKNOWN CASE in byte stream (%v)\n\r", endCriteriaTest)
+		break
+	}
+
+	infoPart := ""
+	switch endCriteriaTest {
+	case 1:
+		infoPart = "["
+		break
+	case 2:
+		infoPart = "[P"
+		break
+	case 3:
+		infoPart = "[PA"
+		break
+	case 4:
+		infoPart = "[PAS"
+		break
+	case 5:
+		infoPart = "[PASS"
+		break
+	case 6:
+		infoPart = "[PASS]"
+		endCriteriaTest = 0
+		return true
+	}
+	if infoPart != "" && debug > 1 {
+		log.Printf("C: Found '%v' string in byte stream\n\r", infoPart)
+	}
+
+	return false
+}
+*/
+
 // parseFormat calls function depending on transfer format
-func parseFormat(ando *AndoConnection, errors int, lineNumber int) {
+func parseFormat(ando *AndoConnection, errors int, lineNumber *int) {
 	if ando.transferFormat == F_GENERIC {
 		parseGeneric(ando, &errors)
 	}
 	if ando.transferFormat == F_HP64000ABS {
 		initHp64KFormat(ando)
-		parseHp64KFormat(ando, &lineNumber, &errors)
+		parseHp64KFormat(ando, lineNumber, &errors)
 	}
 	if ando.transferFormat == F_ASCIIHex {
-		parseASCIIHexFormat(ando, &lineNumber, &errors)
+		parseASCIIHexFormat(ando, lineNumber, &errors)
 	}
 }
 
@@ -225,6 +385,7 @@ func localKeyboardReader(ando *AndoConnection) {
 					ando.lineInfos = nil
 					ando.checksum = 0
 					initGenericFormat(ando)
+					endCriteriaTest = 0
 
 					fmt.Println("\n\r")
 					ando.state = ReceiveData
@@ -355,7 +516,7 @@ func writeDataToFile(ando *AndoConnection) {
 		log.Printf("Error Writing file %s\n\r", err)
 		return
 	}
-	fmt.Printf("\n\rWrote %v bytes to file\n\r", numBytes)
+	log.Printf("\n\rWrote %v bytes to file\n\r", numBytes)
 }
 
 func createFileName(file string, checksum uint32) string {

@@ -89,6 +89,11 @@ Download time for 4K EPROM is ~8.5 seconds with ASCII-Hex and ~3.5 seconds with 
 
 Some more details on file formats see [file-formats.md](file-formats.md)
 
+## Different firmwares
+On my original Ando device there was firmware 21.7. 
+Later I've raised this to a Promac 21.9 firmware. This firmware behaves slightly different in up/download.
+So I have created a branch so far for version 21.9. The master branch is still valid for 21.7.
+
 ## Restrictions
 The software uses package "golang.org/x/term" and was only tested with Linux.
 I do not know if that package exists for other operating systems,
