@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type StartOfFileRecord struct {
 	wordCount       uint8
