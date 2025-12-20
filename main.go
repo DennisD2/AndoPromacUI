@@ -109,8 +109,6 @@ func main() {
 	os.Exit(0)
 }
 
-var endCriteriaTest = 0
-
 // ttyReader handle tty input from Programmer device
 func ttyReader(ando *AndoConnection) {
 	var newLine LineInfo
@@ -124,7 +122,7 @@ func ttyReader(ando *AndoConnection) {
 		// check Ando tty
 		num, err := ando.serial.tty.Read(cbuf)
 		if err != nil {
-			fmt.Printf("Error in Read: %s\n", err)
+			log.Printf("Error in Read: %s\n", err)
 			ando.continueLoop = 0
 		} else {
 			endCriteriaReached := endCriteriaCheck(cbuf, ando.debug)
@@ -132,26 +130,25 @@ func ttyReader(ando *AndoConnection) {
 				if ando.state == ReceiveData {
 					// End of download data
 					ando.stopTime = time.Now()
-					log.Printf("Read %v raw bytes\n\r", len(genericState.rawData))
-					log.Printf("Time spent [s]: %v\n\r", ando.stopTime.Sub(ando.startTime).Seconds())
+					log.Printf("Read %v raw bytes, in %.4v seconds\n\r", len(genericState.rawData), ando.stopTime.Sub(ando.startTime).Seconds())
 					if errors > 0 {
-						fmt.Printf("There were %v errors on data download\n\r", errors)
+						log.Printf("There were %v errors on data download\n\r", errors)
 						errors = 0
 					} else {
 						parseFormat(ando, errors, &lineNumber)
 						if errors > 0 {
-							fmt.Printf("There were %v errors during parsing\n\r", errors)
+							log.Printf("There were %v errors during parsing\n\r", errors)
 							errors = 0
 						} else {
-							fmt.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
-							fmt.Printf("Checksum calculated: %06x\n\r", ando.checksum)
+							log.Printf("Data receive completed. Read %v bytes in %v lines/records\n\r", (lineNumber-1)*16, lineNumber-1)
+							log.Printf("Checksum calculated: %06x\n\r", ando.checksum)
 						}
 					}
 					lineNumber = 1
 				}
 				if ando.state == SendData {
 					// Device signals that upload was processed complete and without errors
-					fmt.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
+					log.Printf("\n\rUpload completed for all bytes from file %v\n\r", ando.uploadFile)
 				}
 				if ando.state == ReceiveData || ando.state == SendData {
 					// Data receive/send is complete
@@ -179,7 +176,38 @@ func ttyReader(ando *AndoConnection) {
 // 5b             [
 // 50 41 53 53     P A S S
 // 5d              ]
-func endCriteriaCheck(bytes []byte, debug int) bool {
+var passPattern = []byte("[PASS]")
+var endCriteriaTest = 0
+
+func endCriteriaCheck(chunk []byte, debug int) bool {
+	for _, b := range chunk {
+		if b == passPattern[endCriteriaTest] {
+			if debug > 1 {
+				log.Printf("C: Found '%v' string in byte stream\n\r", string(passPattern[:endCriteriaTest]))
+			}
+			endCriteriaTest++
+			if endCriteriaTest == len(passPattern) {
+				endCriteriaTest = 0
+				if debug > 1 {
+					log.Printf("C: Found '[PASS]' in byte stream\n\r")
+				}
+				return true
+			}
+		} else {
+			// restart check
+			if b == passPattern[0] {
+				endCriteriaTest = 1
+			} else {
+				endCriteriaTest = 0
+			}
+		}
+	}
+
+	return false
+}
+
+/*
+func endCriteriaCheck_OLD(bytes []byte, debug int) bool {
 	//Next line: this one lines works with firmware 21.7
 	//return strings.HasPrefix(string(str), "[PASS]")
 	str := string(bytes)
@@ -301,6 +329,7 @@ func endCriteriaCheck(bytes []byte, debug int) bool {
 
 	return false
 }
+*/
 
 // parseFormat calls function depending on transfer format
 func parseFormat(ando *AndoConnection, errors int, lineNumber *int) {
