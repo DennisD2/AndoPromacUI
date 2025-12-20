@@ -92,7 +92,7 @@ Some more details on file formats see [file-formats.md](file-formats.md)
 ## Different firmwares
 On my original Ando device there was firmware 21.7. 
 Later I've raised this to a Promac 21.9 firmware. This firmware behaves slightly different in up/download.
-So I have created a branch so far for version 21.9. The master branch is still valid for 21.7.
+Software was tested for firmware 21.9.
 
 ## Restrictions
 The software uses package "golang.org/x/term" and was only tested with Linux.
