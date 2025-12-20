@@ -104,7 +104,10 @@ func main() {
 
 	fmt.Println("\n\rQuitting Ando/Promac EPROM Programmer Communication UI\n\r")
 	if !ando.batch {
-		term.Restore(int(os.Stdin.Fd()), oldState)
+		err := term.Restore(int(os.Stdin.Fd()), oldState)
+		if err != nil {
+			log.Printf("Error restoring terminal state: %v", err)
+		}
 	}
 	os.Exit(0)
 }
@@ -156,7 +159,10 @@ func ttyReader(ando *AndoConnection) {
 					// leave S-OUTPUT or S-INPUT state, by sending RESET character
 					bbuf := make([]byte, 1)
 					bbuf[0] = '@'
-					ando.serial.tty.Write(bbuf)
+					_, err := ando.serial.tty.Write(bbuf)
+					if err != nil {
+						log.Printf("Error in Write: %s\n", err)
+					}
 				}
 			} else {
 				if ando.state == ReceiveData {
@@ -202,131 +208,6 @@ func endCriteriaCheck(chunk []byte, debug int) bool {
 
 	return false
 }
-
-/*
-func endCriteriaCheck_OLD(bytes []byte, debug int) bool {
-	//Next line: this one lines works with firmware 21.7
-	//return strings.HasPrefix(string(str), "[PASS]")
-	str := string(bytes)
-
-	switch endCriteriaTest {
-	case 0:
-		if strings.HasPrefix(str, "[") {
-			endCriteriaTest = 1
-			if strings.HasPrefix(str, "[P") {
-				endCriteriaTest = 2
-			}
-			if strings.HasPrefix(str, "[PA") {
-				endCriteriaTest = 3
-			}
-			if strings.HasPrefix(str, "[PAS") {
-				endCriteriaTest = 4
-			}
-			if strings.HasPrefix(str, "[PASS") {
-				endCriteriaTest = 5
-			}
-			if strings.HasPrefix(str, "[PASS]") {
-				endCriteriaTest = 6
-			}
-		}
-		break
-	case 1:
-		if strings.HasPrefix(str, "P") {
-			endCriteriaTest = 2
-		} else {
-			endCriteriaTest = 0
-		}
-		if strings.HasPrefix(str, "PA") {
-			endCriteriaTest = 3
-		}
-		if strings.HasPrefix(str, "PAS") {
-			endCriteriaTest = 4
-		}
-		if strings.HasPrefix(str, "PASS") {
-			endCriteriaTest = 5
-		}
-		if strings.HasPrefix(str, "PASS]") {
-			endCriteriaTest = 6
-		}
-		break
-	case 2:
-		if strings.HasPrefix(str, "A") {
-			endCriteriaTest = 3
-		} else {
-			endCriteriaTest = 0
-		}
-		if strings.HasPrefix(str, "AS") {
-			endCriteriaTest = 4
-		}
-		if strings.HasPrefix(str, "ASS") {
-			endCriteriaTest = 5
-		}
-		if strings.HasPrefix(str, "ASS]") {
-			endCriteriaTest = 6
-		}
-		break
-	case 3:
-		if strings.HasPrefix(str, "S") {
-			endCriteriaTest = 4
-		} else {
-			endCriteriaTest = 0
-		}
-		if strings.HasPrefix(str, "SS") {
-			endCriteriaTest = 5
-		}
-		if strings.HasPrefix(str, "SS]") {
-			endCriteriaTest = 6
-		}
-		break
-	case 4:
-		if strings.HasPrefix(str, "S") {
-			endCriteriaTest = 5
-		} else {
-			endCriteriaTest = 0
-		}
-		if strings.HasPrefix(str, "S]") {
-			endCriteriaTest = 6
-		}
-	case 5:
-		if strings.HasPrefix(str, "]") {
-			endCriteriaTest = 6
-		} else {
-			endCriteriaTest = 0
-		}
-	default:
-		log.Printf("C: UNKNOWN CASE in byte stream (%v)\n\r", endCriteriaTest)
-		break
-	}
-
-	infoPart := ""
-	switch endCriteriaTest {
-	case 1:
-		infoPart = "["
-		break
-	case 2:
-		infoPart = "[P"
-		break
-	case 3:
-		infoPart = "[PA"
-		break
-	case 4:
-		infoPart = "[PAS"
-		break
-	case 5:
-		infoPart = "[PASS"
-		break
-	case 6:
-		infoPart = "[PASS]"
-		endCriteriaTest = 0
-		return true
-	}
-	if infoPart != "" && debug > 1 {
-		log.Printf("C: Found '%v' string in byte stream\n\r", infoPart)
-	}
-
-	return false
-}
-*/
 
 // parseFormat calls function depending on transfer format
 func parseFormat(ando *AndoConnection, errors int, lineNumber *int) {
@@ -390,7 +271,10 @@ func localKeyboardReader(ando *AndoConnection) {
 					bbuf[0] = 'U'
 					bbuf[1] = '7'
 					bbuf[2] = '\r'
-					ando.serial.tty.Write(bbuf)
+					_, err := ando.serial.tty.Write(bbuf)
+					if err != nil {
+						log.Printf("Error in Write: %s\n", err)
+					}
 				}
 				if cbuf[0] == 'w' {
 					ando.state = NormalInput
@@ -433,7 +317,10 @@ func localKeyboardReader(ando *AndoConnection) {
 				if ando.debug > 0 {
 					fmt.Printf("<%d:%s:%x>", num, b, b)
 				} else {
-					ando.serial.tty.Write(b)
+					_, err := ando.serial.tty.Write(b)
+					if err != nil {
+						log.Printf("Error in Write: %s\n", err)
+					}
 				}
 			}
 		}
